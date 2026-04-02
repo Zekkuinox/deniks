@@ -35,39 +35,34 @@ export default async function handler(req, res) {
 
     const token = authRes.body.token;
 
-    // Ver estructura de sales + probar endpoints relacionados
-    const salesRes = await httpsReq({
+    // Ver estructura de payment e item
+    const paymentsRes = await httpsReq({
       hostname: 'api.fu.do',
-      path: '/v1alpha1/sales?page%5Bnumber%5D=1&page%5Bsize%5D=2',
+      path: '/v1alpha1/payments?page%5Bnumber%5D=1&page%5Bsize%5D=1',
       method: 'GET',
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    const endpointsToTest = [
-      '/v1alpha1/payments?page%5Bnumber%5D=1&page%5Bsize%5D=2',
-      '/v1alpha1/sale-items?page%5Bnumber%5D=1&page%5Bsize%5D=2',
-      '/v1alpha1/order-items?page%5Bnumber%5D=1&page%5Bsize%5D=2',
-      '/v1alpha1/items?page%5Bnumber%5D=1&page%5Bsize%5D=2',
-    ];
-    const endpoints = {};
-    for (const p of endpointsToTest) {
-      const r = await httpsReq({
-        hostname: 'api.fu.do',
-        path: p,
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      endpoints[p] = { status: r.status, dataCount: Array.isArray(r.body?.data) ? r.body.data.length : null };
-    }
+    const itemsRes = await httpsReq({
+      hostname: 'api.fu.do',
+      path: '/v1alpha1/items?page%5Bnumber%5D=1&page%5Bsize%5D=1',
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    const salesMetaRes = await httpsReq({
+      hostname: 'api.fu.do',
+      path: '/v1alpha1/sales?filter%5BsaleState%5D=CLOSED&page%5Bnumber%5D=1&page%5Bsize%5D=1',
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
 
     return res.json({
       authOk: true,
-      sales: {
-        status: salesRes.status,
-        meta: salesRes.body?.meta,
-        sample: salesRes.body?.data?.[0] || null
-      },
-      endpoints
+      salesClosed: { meta: salesMetaRes.body?.meta, sample: salesMetaRes.body?.data?.[0] },
+      payment: paymentsRes.body?.data?.[0] || null,
+      item: itemsRes.body?.data?.[0] || null,
+      itemsMeta: itemsRes.body?.meta
     });
   }
 
