@@ -869,6 +869,22 @@ document.querySelectorAll('[data-tooltip]').forEach(el => {
 </script>
 <script>
 // ── SYNC CON SUPABASE ──
+function formatSyncDate(isoString) {
+  const d = new Date(isoString);
+  return d.toLocaleString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+    day:'2-digit', month:'2-digit', year:'2-digit',
+    hour:'2-digit', minute:'2-digit', hour12:false
+  });
+}
+
+function updateSyncLabel(isoString) {
+  const lbl = document.getElementById('last-sync-label');
+  if (!lbl) return;
+  lbl.textContent = `Última sincronización: ${formatSyncDate(isoString)}`;
+  lbl.style.opacity = '1';
+}
+
 async function checkAndRefresh() {
   try {
     const res = await fetch('/api/status');
@@ -876,26 +892,17 @@ async function checkAndRefresh() {
     const { lastSync } = await res.json();
     if (!lastSync) return;
 
+    // Actualizar label siempre
+    updateSyncLabel(lastSync);
+
+    // Mostrar sync-bar brevemente
     const bar = document.getElementById('sync-bar');
     const msg = document.getElementById('sync-msg');
     const icon = document.getElementById('sync-icon');
-
     const ago = getTimeAgo(new Date(lastSync));
     icon.textContent = '✓';
     msg.textContent = `Datos actualizados ${ago}`;
     bar.style.transform = 'translateY(0)';
-
-    // Indicador inline de última sincronización
-    const lbl = document.getElementById('last-sync-label');
-    if (lbl) {
-      const d = new Date(lastSync);
-      const fmt = d.toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires',
-        day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false });
-      lbl.textContent = `Última sincronización: ${fmt}`;
-      lbl.style.opacity = '1';
-    }
-
-    // Auto-ocultar después de 5s
     setTimeout(() => { bar.style.transform = 'translateY(-100%)'; }, 5000);
 
   } catch(e) { /* silencioso si falla */ }
@@ -919,6 +926,7 @@ async function triggerSync() {
     if (res.ok) {
       icon.textContent = '✅';
       msg.textContent = 'Datos actualizados. Recargando...';
+      updateSyncLabel(new Date().toISOString());
       setTimeout(() => location.reload(), 1500);
     } else {
       icon.textContent = '⚠️';
