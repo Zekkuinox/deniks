@@ -653,14 +653,25 @@ function dpRenderDays(id, popup) {
 
 function dpRenderMonths(id, popup) {
   const s = dpState[id];
-  const items = MONTHS_ES.map((mn, i) =>
-    `<button class="dp-ym-item${s.date&&s.date.getMonth()===i&&s.date.getFullYear()===s.viewYear?' selected':''}" onclick="dpSelectMonth('${id}',${i})">${mn.substring(0,3)}</button>`
-  ).join('');
+  const now = new Date();
+  const isCurrentYear = s.viewYear === now.getFullYear();
+  const isMinYear = s.viewYear === DP_MIN.getFullYear();
+  const maxMonth = isCurrentYear ? now.getMonth() : 11;
+  const minMonth = isMinYear ? DP_MIN.getMonth() : 0;
+  const canGoNext = s.viewYear < now.getFullYear();
+  const canGoPrev = s.viewYear > DP_MIN.getFullYear();
+
+  const items = MONTHS_ES.map((mn, i) => {
+    const disabled = i > maxMonth || i < minMonth;
+    const selected = s.date && s.date.getMonth() === i && s.date.getFullYear() === s.viewYear;
+    return `<button class="dp-ym-item${selected?' selected':''}" ${disabled?'disabled style="opacity:.2;cursor:default;"':''} onclick="${disabled?'':`dpSelectMonth('${id}',${i})`}">${mn.substring(0,3)}</button>`;
+  }).join('');
+
   popup.innerHTML = `
     <div class="dp-head">
-      <button class="dp-nav" onclick="dpState['${id}'].viewYear--;dpRender('${id}')">‹</button>
+      <button class="dp-nav" ${canGoPrev?'':'disabled style="opacity:.2;cursor:default;"'} onclick="${canGoPrev?`dpState['${id}'].viewYear--;dpRender('${id}')`:''}"">‹</button>
       <span class="dp-head-label" onclick="dpState['${id}'].view='year';dpRender('${id}')">${s.viewYear}</span>
-      <button class="dp-nav" onclick="dpState['${id}'].viewYear++;dpRender('${id}')">›</button>
+      <button class="dp-nav" ${canGoNext?'':'disabled style="opacity:.2;cursor:default;"'} onclick="${canGoNext?`dpState['${id}'].viewYear++;dpRender('${id}')`:''}"">›</button>
     </div>
     <div class="dp-ym-grid">${items}</div>`;
 }
