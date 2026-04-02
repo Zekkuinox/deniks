@@ -64,20 +64,61 @@
     .tab-btn:hover{border-color:var(--gold-dim);color:var(--cream);}
     .tab-btn.active{background:rgba(196,162,101,0.12);border-color:var(--gold-dim);color:var(--gold-light);}
 
-    /* DATE PICKERS */
+    /* DATE PICKERS CUSTOM */
     .custom-range{display:none;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;}
     .custom-range.visible{display:flex;}
-    .date-input{
-      font-family:'Inter',sans-serif;font-size:12px;
+
+    .dp-wrap{position:relative;display:inline-block;}
+    .dp-trigger{
+      font-family:'Inter',sans-serif;font-size:12px;font-weight:500;
       background:var(--card-hover);border:1px solid var(--border);
-      color:var(--cream);border-radius:5px;padding:6px 12px;outline:none;
-      cursor:pointer;transition:border-color .15s;
+      color:var(--cream);border-radius:5px;padding:7px 14px;
+      cursor:pointer;transition:border-color .15s;min-width:120px;
+      display:flex;align-items:center;gap:8px;user-select:none;
     }
-    .date-input:focus{border-color:var(--gold-dim);}
-    .date-input::-webkit-calendar-picker-indicator{filter:invert(0.6);}
+    .dp-trigger:hover,.dp-trigger.open{border-color:var(--gold-dim);color:var(--gold-light);}
+    .dp-trigger svg{opacity:.5;flex-shrink:0;}
+
+    .dp-popup{
+      position:absolute;top:calc(100% + 6px);left:0;z-index:500;
+      background:#1f1b14;border:1px solid var(--border);border-radius:10px;
+      padding:16px;min-width:240px;box-shadow:0 16px 40px rgba(0,0,0,0.6);
+      display:none;
+    }
+    .dp-popup.open{display:block;}
+
+    /* Header nav */
+    .dp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+    .dp-nav{background:none;border:none;color:var(--cream-muted);cursor:pointer;font-size:16px;
+      padding:2px 6px;border-radius:4px;transition:color .15s;}
+    .dp-nav:hover{color:var(--gold-light);}
+    .dp-head-label{font-size:13px;font-weight:600;color:var(--cream);cursor:pointer;
+      padding:3px 8px;border-radius:4px;transition:background .15s;letter-spacing:0.3px;}
+    .dp-head-label:hover{background:rgba(196,162,101,0.1);color:var(--gold-light);}
+
+    /* Day grid */
+    .dp-weekdays{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px;}
+    .dp-wd{text-align:center;font-size:10px;font-weight:600;color:var(--cream-muted);
+      letter-spacing:.5px;padding:2px 0;}
+    .dp-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+    .dp-day{text-align:center;font-size:12px;padding:5px 2px;border-radius:5px;
+      cursor:pointer;color:var(--cream-dim);transition:background .12s,color .12s;border:none;background:none;}
+    .dp-day:hover{background:rgba(196,162,101,0.12);color:var(--cream);}
+    .dp-day.today{color:var(--gold);font-weight:600;}
+    .dp-day.selected{background:var(--gold);color:#171410;font-weight:700;}
+    .dp-day.other-month{opacity:.25;}
+    .dp-day:disabled{opacity:.15;cursor:default;}
+
+    /* Year/Month grid */
+    .dp-ym-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:4px;}
+    .dp-ym-item{text-align:center;font-size:12px;padding:8px 4px;border-radius:5px;
+      cursor:pointer;color:var(--cream-dim);transition:background .12s;border:none;background:none;}
+    .dp-ym-item:hover{background:rgba(196,162,101,0.12);color:var(--cream);}
+    .dp-ym-item.selected{background:var(--gold);color:#171410;font-weight:700;}
+
     .apply-btn{
       font-size:11px;font-weight:600;letter-spacing:0.8px;text-transform:uppercase;
-      padding:6px 16px;border-radius:5px;border:none;
+      padding:7px 18px;border-radius:5px;border:none;
       background:var(--gold);color:#171410;cursor:pointer;transition:background .15s;
     }
     .apply-btn:hover{background:var(--gold-light);}
@@ -261,9 +302,26 @@
       <button class="tab-btn" onclick="setMode('custom',this)">Personalizado</button>
     </div>
     <div class="custom-range" id="custom-range">
-      <input type="date" class="date-input" id="date-from" value="2024-01-01" min="2023-10-01" max="2026-04-01" />
-      <span style="color:var(--cream-muted);font-size:12px;">→</span>
-      <input type="date" class="date-input" id="date-to" value="2024-12-31" min="2023-10-01" max="2026-04-01" />
+      <!-- Date picker DESDE -->
+      <div class="dp-wrap" id="dp-from-wrap">
+        <div class="dp-trigger" id="dp-from-trigger" onclick="dpToggle('from')">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="2" width="11" height="10" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M1 5h11M4 1v2M9 1v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          <span id="dp-from-label">Desde</span>
+        </div>
+        <div class="dp-popup" id="dp-from-popup"></div>
+      </div>
+
+      <span style="color:var(--cream-muted);font-size:14px;">→</span>
+
+      <!-- Date picker HASTA -->
+      <div class="dp-wrap" id="dp-to-wrap">
+        <div class="dp-trigger" id="dp-to-trigger" onclick="dpToggle('to')">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="2" width="11" height="10" rx="2" stroke="currentColor" stroke-width="1.2"/><path d="M1 5h11M4 1v2M9 1v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          <span id="dp-to-label">Hasta</span>
+        </div>
+        <div class="dp-popup" id="dp-to-popup"></div>
+      </div>
+
       <button class="apply-btn" onclick="applyCustom()">Aplicar</button>
     </div>
     <div class="chart-container">
@@ -514,10 +572,157 @@ function setMode(mode, btn) {
   if(mode!=='custom') render(mode);
 }
 
+// ── CUSTOM DATE PICKER ──
+const dpState = {
+  from: { date: new Date('2024-01-01'), view: 'day', viewYear: 2024, viewMonth: 0 },
+  to:   { date: new Date('2024-12-31'), view: 'day', viewYear: 2024, viewMonth: 11 }
+};
+const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const WD_ES = ['LU','MA','MI','JU','VI','SA','DO'];
+const DP_MIN = new Date('2023-10-01');
+const DP_MAX = new Date();
+
+function dpFmt(d) {
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+function dpVal(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function dpToggle(id) {
+  const other = id === 'from' ? 'to' : 'from';
+  document.getElementById(`dp-${other}-popup`).classList.remove('open');
+  document.getElementById(`dp-${other}-trigger`).classList.remove('open');
+  const popup = document.getElementById(`dp-${id}-popup`);
+  const trigger = document.getElementById(`dp-${id}-trigger`);
+  const isOpen = popup.classList.contains('open');
+  if (isOpen) { popup.classList.remove('open'); trigger.classList.remove('open'); }
+  else { popup.classList.add('open'); trigger.classList.add('open'); dpRender(id); }
+}
+
+function dpClose(id) {
+  document.getElementById(`dp-${id}-popup`).classList.remove('open');
+  document.getElementById(`dp-${id}-trigger`).classList.remove('open');
+}
+
+function dpRender(id) {
+  const s = dpState[id];
+  const popup = document.getElementById(`dp-${id}-popup`);
+  if (s.view === 'year') { dpRenderYears(id, popup); }
+  else if (s.view === 'month') { dpRenderMonths(id, popup); }
+  else { dpRenderDays(id, popup); }
+}
+
+function dpRenderDays(id, popup) {
+  const s = dpState[id];
+  const y = s.viewYear, m = s.viewMonth;
+  const firstDay = new Date(y, m, 1).getDay(); // 0=dom
+  const daysInMonth = new Date(y, m+1, 0).getDate();
+  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
+
+  let days = '';
+  for (let i = 0; i < startOffset; i++) {
+    const d = new Date(y, m, 1 - startOffset + i);
+    days += `<button class="dp-day other-month" onclick="dpSelectDay('${id}',${d.getFullYear()},${d.getMonth()},${d.getDate()})">${d.getDate()}</button>`;
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(y, m, d);
+    const isSelected = s.date && dpVal(s.date) === dpVal(date);
+    const isToday = dpVal(date) === dpVal(new Date());
+    const disabled = date < DP_MIN || date > DP_MAX;
+    days += `<button class="dp-day${isSelected?' selected':''}${isToday&&!isSelected?' today':''}" ${disabled?'disabled':''} onclick="dpSelectDay('${id}',${y},${m},${d})">${d}</button>`;
+  }
+  const remaining = (startOffset + daysInMonth) % 7;
+  if (remaining > 0) {
+    for (let i = 1; i <= 7 - remaining; i++) {
+      days += `<button class="dp-day other-month" onclick="dpSelectDay('${id}',${y},${m+1},${i})">${i}</button>`;
+    }
+  }
+
+  popup.innerHTML = `
+    <div class="dp-head">
+      <button class="dp-nav" onclick="dpChangeMonth('${id}',-1)">‹</button>
+      <span class="dp-head-label" onclick="dpState['${id}'].view='month';dpRender('${id}')">${MONTHS_ES[m]} ${y}</span>
+      <button class="dp-nav" onclick="dpChangeMonth('${id}',1)">›</button>
+    </div>
+    <div class="dp-weekdays">${WD_ES.map(w=>`<div class="dp-wd">${w}</div>`).join('')}</div>
+    <div class="dp-days">${days}</div>`;
+}
+
+function dpRenderMonths(id, popup) {
+  const s = dpState[id];
+  const items = MONTHS_ES.map((mn, i) =>
+    `<button class="dp-ym-item${s.date&&s.date.getMonth()===i&&s.date.getFullYear()===s.viewYear?' selected':''}" onclick="dpSelectMonth('${id}',${i})">${mn.substring(0,3)}</button>`
+  ).join('');
+  popup.innerHTML = `
+    <div class="dp-head">
+      <button class="dp-nav" onclick="dpState['${id}'].viewYear--;dpRender('${id}')">‹</button>
+      <span class="dp-head-label" onclick="dpState['${id}'].view='year';dpRender('${id}')">${s.viewYear}</span>
+      <button class="dp-nav" onclick="dpState['${id}'].viewYear++;dpRender('${id}')">›</button>
+    </div>
+    <div class="dp-ym-grid">${items}</div>`;
+}
+
+function dpRenderYears(id, popup) {
+  const s = dpState[id];
+  const curYear = new Date().getFullYear();
+  const startYear = 2023;
+  let items = '';
+  for (let y = startYear; y <= curYear + 1; y++) {
+    const sel = s.date && s.date.getFullYear() === y;
+    items += `<button class="dp-ym-item${sel?' selected':''}" onclick="dpSelectYear('${id}',${y})">${y}</button>`;
+  }
+  popup.innerHTML = `
+    <div class="dp-head" style="margin-bottom:8px;">
+      <span class="dp-head-label" style="cursor:default;">Año</span>
+    </div>
+    <div class="dp-ym-grid">${items}</div>`;
+}
+
+function dpChangeMonth(id, delta) {
+  const s = dpState[id];
+  let m = s.viewMonth + delta, y = s.viewYear;
+  if (m < 0) { m = 11; y--; } else if (m > 11) { m = 0; y++; }
+  s.viewMonth = m; s.viewYear = y;
+  dpRender(id);
+}
+
+function dpSelectDay(id, y, m, d) {
+  const date = new Date(y, m, d);
+  dpState[id].date = date;
+  dpState[id].viewYear = y;
+  dpState[id].viewMonth = m;
+  document.getElementById(`dp-${id}-label`).textContent = dpFmt(date);
+  dpClose(id);
+}
+
+function dpSelectMonth(id, m) {
+  dpState[id].viewMonth = m;
+  dpState[id].view = 'day';
+  dpRender(id);
+}
+
+function dpSelectYear(id, y) {
+  dpState[id].viewYear = y;
+  dpState[id].view = 'month';
+  dpRender(id);
+}
+
+// Cerrar al click afuera
+document.addEventListener('click', (e) => {
+  ['from','to'].forEach(id => {
+    const wrap = document.getElementById(`dp-${id}-wrap`);
+    if (wrap && !wrap.contains(e.target)) dpClose(id);
+  });
+});
+
+// Inicializar labels
+document.getElementById('dp-from-label').textContent = dpFmt(dpState.from.date);
+document.getElementById('dp-to-label').textContent = dpFmt(dpState.to.date);
+
 function applyCustom() {
-  const from = document.getElementById('date-from').value;
-  const to   = document.getElementById('date-to').value;
-  render('custom', from, to);
+  if (!dpState.from.date || !dpState.to.date) return;
+  render('custom', dpVal(dpState.from.date), dpVal(dpState.to.date));
 }
 
 function render(mode, from, to) {
