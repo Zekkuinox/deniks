@@ -573,9 +573,11 @@ function setMode(mode, btn) {
 }
 
 // ── CUSTOM DATE PICKER ──
+const _today = new Date();
+const _monthAgo = new Date(_today); _monthAgo.setMonth(_monthAgo.getMonth() - 1);
 const dpState = {
-  from: { date: new Date('2024-01-01'), view: 'day', viewYear: 2024, viewMonth: 0 },
-  to:   { date: new Date('2024-12-31'), view: 'day', viewYear: 2024, viewMonth: 11 }
+  from: { date: _monthAgo, view: 'day', viewYear: _monthAgo.getFullYear(), viewMonth: _monthAgo.getMonth() },
+  to:   { date: _today,    view: 'day', viewYear: _today.getFullYear(),    viewMonth: _today.getMonth() }
 };
 const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const WD_ES = ['LU','MA','MI','JU','VI','SA','DO'];
