@@ -2,3 +2,22 @@
 .env.local
 node_modules/
 .vercel/
+.claude/
+
+# Datos crudos de extracción API
+customers.json
+data_ventas.json
+items.json
+items_all.json
+kitchens.json
+payment_methods.json
+payments.json
+payments_all.json
+product_categories.json
+products.json
+products_all.json
+roles.json
+sales.json
+sales_all.json
+tables.json
+users.json
