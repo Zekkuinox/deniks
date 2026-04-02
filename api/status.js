@@ -35,34 +35,56 @@ export default async function handler(req, res) {
 
     const token = authRes.body.token;
 
-    // Ver estructura de payment e item
-    const paymentsRes = await httpsReq({
+    // Check paginación (links vs meta) y filtros por fecha
+    const salesFullRes = await httpsReq({
       hostname: 'api.fu.do',
-      path: '/v1alpha1/payments?page%5Bnumber%5D=1&page%5Bsize%5D=1',
+      path: '/v1alpha1/sales?page%5Bnumber%5D=1&page%5Bsize%5D=2',
       method: 'GET',
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    const itemsRes = await httpsReq({
+    // Filtros de fecha para incremental sync
+    const salesDateFilterRes = await httpsReq({
       hostname: 'api.fu.do',
-      path: '/v1alpha1/items?page%5Bnumber%5D=1&page%5Bsize%5D=1',
+      path: '/v1alpha1/sales?filter%5BclosedAt%5D%5Bgte%5D=2026-01-01&page%5Bnumber%5D=1&page%5Bsize%5D=2',
       method: 'GET',
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    const salesMetaRes = await httpsReq({
+    const salesDateFilter2Res = await httpsReq({
       hostname: 'api.fu.do',
-      path: '/v1alpha1/sales?filter%5BsaleState%5D=CLOSED&page%5Bnumber%5D=1&page%5Bsize%5D=1',
+      path: '/v1alpha1/sales?filter%5BclosedAtFrom%5D=2026-01-01&page%5Bnumber%5D=1&page%5Bsize%5D=2',
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    // Obtener product-methods y products
+    const pmRes = await httpsReq({
+      hostname: 'api.fu.do',
+      path: '/v1alpha1/payment-methods?page%5Bnumber%5D=1&page%5Bsize%5D=5',
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    const productsRes = await httpsReq({
+      hostname: 'api.fu.do',
+      path: '/v1alpha1/products?page%5Bnumber%5D=1&page%5Bsize%5D=2',
       method: 'GET',
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
     return res.json({
       authOk: true,
-      salesClosed: { meta: salesMetaRes.body?.meta, sample: salesMetaRes.body?.data?.[0] },
-      payment: paymentsRes.body?.data?.[0] || null,
-      item: itemsRes.body?.data?.[0] || null,
-      itemsMeta: itemsRes.body?.meta
+      salesTopKeys: salesFullRes.body ? Object.keys(salesFullRes.body) : [],
+      salesMeta: salesFullRes.body?.meta,
+      salesLinks: salesFullRes.body?.links,
+      salesTotal: salesFullRes.body?.meta?.page?.total || salesFullRes.body?.meta?.total,
+      dateFilter: {
+        gte: { status: salesDateFilterRes.status, count: salesDateFilterRes.body?.data?.length },
+        from: { status: salesDateFilter2Res.status, count: salesDateFilter2Res.body?.data?.length }
+      },
+      paymentMethods: pmRes.body?.data?.map(p => ({ id: p.id, ...p.attributes })) || null,
+      productSample: productsRes.body?.data?.[0] || null
     });
   }
 
