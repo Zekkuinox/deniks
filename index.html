@@ -190,6 +190,45 @@
       pointer-events: none;
     }
 
+    /* login form */
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      margin-top: 40px;
+      width: 100%;
+      max-width: 300px;
+      opacity: 0;
+      transform: translateY(12px);
+      animation: fadeUp 0.9s 1.2s forwards;
+    }
+
+    .login-input {
+      width: 100%;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(196,162,101,0.25);
+      border-radius: 3px;
+      color: var(--cream);
+      font-family: 'Inter', sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      letter-spacing: 0.3px;
+      outline: none;
+      transition: border-color .2s, background .2s;
+    }
+    .login-input::placeholder { color: rgba(180,165,140,0.45); }
+    .login-input:focus { border-color: rgba(196,162,101,0.6); background: rgba(255,255,255,0.1); }
+
+    .login-error {
+      font-size: 11px;
+      color: #e07070;
+      letter-spacing: 0.3px;
+      height: 14px;
+      transition: opacity .2s;
+    }
+
     /* soon badge */
     .soon {
       font-size: 8px;
@@ -282,16 +321,19 @@
 
     <div class="line-divider"></div>
 
-    <div class="buttons">
-      <a href="/metricas" class="btn btn-primary">
-        Métricas
-      </a>
-      <a href="/estadisticas" class="btn btn-primary" style="background:rgba(101,72,38,0.45);color:var(--cream);border:1px solid rgba(196,162,101,0.45);">
-        Estadísticas
-      </a>
-      <button class="btn btn-ghost disabled">
-        Facturas <span class="soon">Pronto</span>
-      </button>
+    <!-- LOGIN -->
+    <form class="login-form" id="login-form" onsubmit="doLogin(event)">
+      <input class="login-input" id="login-user" type="text" placeholder="Usuario" autocomplete="username" />
+      <input class="login-input" id="login-pass" type="password" placeholder="Contraseña" autocomplete="current-password" />
+      <div class="login-error" id="login-error"></div>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Ingresar</button>
+    </form>
+
+    <!-- BOTONES (ocultos hasta login) -->
+    <div class="buttons" id="main-buttons" style="display:none;opacity:0;">
+      <a href="/metricas" class="btn btn-primary">Métricas</a>
+      <a href="/estadisticas" class="btn btn-primary" style="background:rgba(101,72,38,0.45);color:var(--cream);border:1px solid rgba(196,162,101,0.45);">Estadísticas</a>
+      <button class="btn btn-ghost disabled">Facturas <span class="soon">Pronto</span></button>
     </div>
   </div>
 
@@ -299,6 +341,7 @@
   <div class="footer">Piedra Pasillo &nbsp;·&nbsp; Powered by Fudo API</div>
 
   <script>
+    // ── SLIDESHOW ──
     const slides = document.querySelectorAll('.bg-slide');
     const dots   = document.querySelectorAll('.dot');
     let current  = 0;
@@ -312,17 +355,52 @@
       dots[current].classList.add('active');
       resetTimer();
     }
-
-    function nextSlide() {
-      goSlide((current + 1) % slides.length);
-    }
-
-    function resetTimer() {
-      clearInterval(timer);
-      timer = setInterval(nextSlide, 5000);
-    }
-
+    function nextSlide() { goSlide((current + 1) % slides.length); }
+    function resetTimer() { clearInterval(timer); timer = setInterval(nextSlide, 5000); }
     resetTimer();
+
+    // ── AUTH ──
+    const AUTH_KEY = 'deniks_auth';
+
+    function showButtons() {
+      document.getElementById('login-form').style.display = 'none';
+      const btns = document.getElementById('main-buttons');
+      btns.style.display = 'flex';
+      // Animar entrada
+      requestAnimationFrame(() => {
+        btns.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        btns.style.transform = 'translateY(12px)';
+        requestAnimationFrame(() => {
+          btns.style.opacity = '1';
+          btns.style.transform = 'translateY(0)';
+        });
+      });
+    }
+
+    function doLogin(e) {
+      e.preventDefault();
+      const user = document.getElementById('login-user').value.trim();
+      const pass = document.getElementById('login-pass').value;
+      const err  = document.getElementById('login-error');
+
+      if (user === 'deniks' && pass === 'Deniks123') {
+        localStorage.setItem(AUTH_KEY, '1');
+        err.textContent = '';
+        showButtons();
+      } else {
+        err.textContent = 'Usuario o contraseña incorrectos';
+        document.getElementById('login-pass').value = '';
+        document.getElementById('login-pass').focus();
+      }
+    }
+
+    // Al cargar: si ya está logueado, mostrar botones directamente
+    if (localStorage.getItem(AUTH_KEY) === '1') {
+      // Esperar a que el DOM esté listo con las animaciones
+      window.addEventListener('DOMContentLoaded', () => {
+        setTimeout(showButtons, 1300);
+      });
+    }
   </script>
 </body>
 </html>
