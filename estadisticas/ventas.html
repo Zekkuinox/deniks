@@ -670,7 +670,7 @@ function dpRenderYears(id, popup) {
   const curYear = new Date().getFullYear();
   const startYear = 2023;
   let items = '';
-  for (let y = startYear; y <= curYear + 1; y++) {
+  for (let y = startYear; y <= curYear; y++) {
     const sel = s.date && s.date.getFullYear() === y;
     items += `<button class="dp-ym-item${sel?' selected':''}" onclick="dpSelectYear('${id}',${y})">${y}</button>`;
   }
