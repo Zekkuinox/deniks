@@ -35,33 +35,40 @@ export default async function handler(req, res) {
 
     const token = authRes.body.token;
 
-    // Intentar múltiples paths para descubrir el correcto
-    const paths = [
-      '/v1alpha1/orders?page%5Bnumber%5D=1&page%5Bsize%5D=2',
-      '/v1/orders?page%5Bnumber%5D=1&page%5Bsize%5D=2',
-      '/v2/orders?page%5Bnumber%5D=1&page%5Bsize%5D=2',
-      '/api/orders?page%5Bnumber%5D=1&page%5Bsize%5D=2',
-      '/v1alpha1/sales?page%5Bnumber%5D=1&page%5Bsize%5D=2',
-      '/v1alpha1/transactions?page%5Bnumber%5D=1&page%5Bsize%5D=2',
-    ];
+    // Ver estructura de sales + probar endpoints relacionados
+    const salesRes = await httpsReq({
+      hostname: 'api.fu.do',
+      path: '/v1alpha1/sales?page%5Bnumber%5D=1&page%5Bsize%5D=2',
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
 
-    const results = {};
-    for (const p of paths) {
+    const endpointsToTest = [
+      '/v1alpha1/payments?page%5Bnumber%5D=1&page%5Bsize%5D=2',
+      '/v1alpha1/sale-items?page%5Bnumber%5D=1&page%5Bsize%5D=2',
+      '/v1alpha1/order-items?page%5Bnumber%5D=1&page%5Bsize%5D=2',
+      '/v1alpha1/items?page%5Bnumber%5D=1&page%5Bsize%5D=2',
+    ];
+    const endpoints = {};
+    for (const p of endpointsToTest) {
       const r = await httpsReq({
         hostname: 'api.fu.do',
         path: p,
         method: 'GET',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      results[p] = {
-        status: r.status,
-        keys: r.body ? Object.keys(r.body) : [],
-        dataCount: Array.isArray(r.body?.data) ? r.body.data.length : null,
-        meta: r.body?.meta
-      };
+      endpoints[p] = { status: r.status, dataCount: Array.isArray(r.body?.data) ? r.body.data.length : null };
     }
 
-    return res.json({ authOk: true, tokenPreview: token.substring(0, 30) + '...', results });
+    return res.json({
+      authOk: true,
+      sales: {
+        status: salesRes.status,
+        meta: salesRes.body?.meta,
+        sample: salesRes.body?.data?.[0] || null
+      },
+      endpoints
+    });
   }
 
   try {
