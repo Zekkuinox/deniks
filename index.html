@@ -383,7 +383,7 @@
       const pass = document.getElementById('login-pass').value;
       const err  = document.getElementById('login-error');
 
-      if (user === 'deniks' && pass === 'Deniks123') {
+      if (user.toLowerCase() === 'deniks' && pass === 'Deniks123') {
         localStorage.setItem(AUTH_KEY, '1');
         err.textContent = '';
         showButtons();
