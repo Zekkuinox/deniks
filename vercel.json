@@ -1,5 +1,6 @@
 {
   "cleanUrls": true,
+  "toolbar": false,
   "crons": [
     {
       "path": "/api/cron-sync",
