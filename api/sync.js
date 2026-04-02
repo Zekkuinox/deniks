@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import https from 'https';
 
-// Helper: HTTP request como Promise
 function httpsRequest(options, body = null) {
   return new Promise((resolve, reject) => {
     const req = https.request(options, (res) => {
@@ -18,7 +17,6 @@ function httpsRequest(options, body = null) {
   });
 }
 
-// Autenticar con FUDO
 async function getFudoToken() {
   const res = await httpsRequest({
     hostname: 'auth.fu.do',
@@ -27,19 +25,21 @@ async function getFudoToken() {
     headers: { 'Content-Type': 'application/json' }
   }, { apiKey: process.env.FUDO_API_KEY, apiSecret: process.env.FUDO_API_SECRET });
 
-  if (!res.body?.token) throw new Error('FUDO auth falló');
+  if (!res.body?.token) throw new Error(`FUDO auth falló: ${JSON.stringify(res.body)}`);
   return res.body.token;
 }
 
-// Fetch paginado de FUDO
-async function fetchAllPages(token, endpoint) {
+// Fetch paginado — para cuando data.length < pageSize (sin meta en la API de FUDO)
+async function fetchAllPages(token, basePath) {
   const all = [];
   let page = 1;
+  const pageSize = 250;
 
   while (true) {
+    const sep = basePath.includes('?') ? '&' : '?';
     const res = await httpsRequest({
       hostname: 'api.fu.do',
-      path: `/v1alpha1${endpoint}${endpoint.includes('?') ? '&' : '?'}page%5Bnumber%5D=${page}&page%5Bsize%5D=250`,
+      path: `/v1alpha1${basePath}${sep}page%5Bnumber%5D=${page}&page%5Bsize%5D=${pageSize}`,
       method: 'GET',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -47,125 +47,153 @@ async function fetchAllPages(token, endpoint) {
     const items = res.body?.data || [];
     all.push(...items);
 
-    const totalPages = res.body?.meta?.page?.totalPages || 1;
-    if (page >= totalPages) break;
+    if (items.length < pageSize) break; // Última página
     page++;
-    await new Promise(r => setTimeout(r, 150)); // rate limit
+    await new Promise(r => setTimeout(r, 30)); // Delay mínimo para no saturar
   }
 
   return all;
 }
 
-// Función principal de sync
 export async function syncFudo() {
   const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_KEY
   );
 
-  // Obtener datos existentes de Supabase
-  const { data: existingV1 } = await supabase
-    .from('deniks_cache')
-    .select('value')
-    .eq('key', 'ventas_v1')
-    .single();
-
-  const { data: existingV2 } = await supabase
-    .from('deniks_cache')
-    .select('value')
-    .eq('key', 'ventas_v2')
-    .single();
-
-  // Determinar última fecha conocida
-  let lastDate = '2023-10-01';
-  if (existingV1?.value?.byDay) {
-    const dates = Object.keys(existingV1.value.byDay).sort();
-    if (dates.length > 0) lastDate = dates[dates.length - 1];
-  }
-
-  console.log(`Sync incremental desde: ${lastDate}`);
-
   const token = await getFudoToken();
 
-  // Fetch orders (ventas) - todos con status closed
-  const orders = await fetchAllPages(token, '/orders?filter%5Bstatus%5D=closed');
+  // 1. Lookups pequeños en paralelo
+  const [paymentMethodsData, productsData, categoriesData] = await Promise.all([
+    fetchAllPages(token, '/payment-methods'),
+    fetchAllPages(token, '/products'),
+    fetchAllPages(token, '/product-categories')
+  ]);
 
-  // Fetch payments
-  const payments = await fetchAllPages(token, '/payments');
+  // Mapas de referencia
+  const pmMap = {}; // paymentMethodId → name
+  for (const pm of paymentMethodsData) {
+    pmMap[pm.id] = pm.attributes?.name || `Método ${pm.id}`;
+  }
 
-  // Fetch order-items
-  const orderItems = await fetchAllPages(token, '/order-items');
+  const productInfo = {}; // productId → { name, categoryId }
+  for (const p of productsData) {
+    productInfo[p.id] = {
+      name: p.attributes?.name || `Producto ${p.id}`,
+      categoryId: p.relationships?.productCategory?.data?.id || null
+    };
+  }
 
-  // Procesar datos
-  const byDay = { ...(existingV1?.value?.byDay || {}) };
-  const byMonth = { ...(existingV1?.value?.byMonth || {}) };
-  const byWeek = { ...(existingV1?.value?.byWeek || {}) };
-  const productMap = {};
-  let totalClosed = 0;
-  let totalCanceled = 0;
+  const categoryMap = {}; // categoryId → name
+  for (const c of categoriesData) {
+    categoryMap[c.id] = c.attributes?.name || `Cat ${c.id}`;
+  }
 
-  for (const order of orders) {
-    const attrs = order.attributes || {};
-    const status = attrs.status;
-    if (status === 'canceled') { totalCanceled++; continue; }
-    if (status !== 'closed') continue;
+  // 2. Data principal en paralelo (las 3 fuentes grandes)
+  const [sales, payments, items] = await Promise.all([
+    fetchAllPages(token, '/sales'),
+    fetchAllPages(token, '/payments'),
+    fetchAllPages(token, '/items')
+  ]);
+
+  // 3. Procesar ventas
+  const byDay = {}, byMonth = {}, byWeek = {};
+  const saleDateMap = {}; // saleId → date (solo ventas CLOSED)
+  const ticketByMonth = {}, countByMonth = {};
+  let totalClosed = 0, totalCanceled = 0;
+
+  for (const sale of sales) {
+    const attrs = sale.attributes || {};
+    const state = attrs.saleState;
+
+    if (state === 'CANCELED') { totalCanceled++; continue; }
+    if (state !== 'CLOSED') continue;
     totalClosed++;
 
-    const closedAt = attrs.closedAt || attrs.closed_at || attrs.createdAt;
+    const closedAt = attrs.closedAt;
     if (!closedAt) continue;
     const date = closedAt.split('T')[0];
-    const total = parseFloat(attrs.total || attrs.totalPrice || 0);
-    if (!total || isNaN(total)) continue;
+    const total = parseFloat(attrs.total || 0);
 
-    // byDay
+    saleDateMap[sale.id] = date;
+
+    if (!total) continue;
+
     byDay[date] = (byDay[date] || 0) + total;
 
-    // byMonth
     const month = date.substring(0, 7);
     byMonth[month] = (byMonth[month] || 0) + total;
 
-    // byWeek - lunes de la semana
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    ticketByMonth[month] = (ticketByMonth[month] || 0) + total;
+    countByMonth[month] = (countByMonth[month] || 0) + 1;
+
+    // Semana (lunes)
+    const d = new Date(date + 'T12:00:00');
+    const dow = d.getDay();
+    const diff = d.getDate() - dow + (dow === 0 ? -6 : 1);
     const monday = new Date(d.setDate(diff));
     const weekKey = monday.toISOString().split('T')[0];
     byWeek[weekKey] = (byWeek[weekKey] || 0) + total;
   }
 
-  // Procesar order-items para top products
-  const existingProducts = existingV1?.value?.topProducts || [];
-  for (const p of existingProducts) {
-    productMap[p.name] = { name: p.name, qty: p.qty, revenue: p.revenue };
-  }
+  // 4. Procesar ítems (para top productos y categorías)
+  const productRevMap = {}; // productName → { name, qty, revenue, categoryId }
 
-  for (const item of orderItems) {
+  for (const item of items) {
     const attrs = item.attributes || {};
-    const name = attrs.productName || attrs.name;
-    if (!name) continue;
+    if (attrs.canceled) continue;
+
+    const productId = item.relationships?.product?.data?.id;
+    if (!productId) continue;
+
+    const saleId = item.relationships?.sale?.data?.id;
+    if (!saleId || !saleDateMap[saleId]) continue; // Solo ítems de ventas cerradas
+
+    const prod = productInfo[productId] || { name: `Producto ${productId}`, categoryId: null };
     const qty = parseInt(attrs.quantity || 1);
-    const price = parseFloat(attrs.unitPrice || attrs.price || 0) * qty;
-    if (!productMap[name]) productMap[name] = { name, qty: 0, revenue: 0 };
-    productMap[name].qty += qty;
-    productMap[name].revenue += price;
+    const price = parseFloat(attrs.price || 0);
+    const lineTotal = price; // En FUDO, price es el total de la línea (price × qty ya incluido)
+
+    if (!productRevMap[prod.name]) {
+      productRevMap[prod.name] = { name: prod.name, qty: 0, revenue: 0, categoryId: prod.categoryId };
+    }
+    productRevMap[prod.name].qty += qty;
+    productRevMap[prod.name].revenue += lineTotal;
   }
 
-  const topProducts = Object.values(productMap).sort((a, b) => b.revenue - a.revenue);
+  const topProducts = Object.values(productRevMap).sort((a, b) => b.revenue - a.revenue);
 
-  // Calcular ticket promedio por mes
-  const ticketByMonth = {};
-  const countByMonth = {};
-  for (const order of orders) {
-    const attrs = order.attributes || {};
-    if (attrs.status !== 'closed') continue;
-    const closedAt = attrs.closedAt || attrs.closed_at;
-    if (!closedAt) continue;
-    const month = closedAt.substring(0, 7);
-    const total = parseFloat(attrs.total || 0);
-    if (!total) continue;
-    ticketByMonth[month] = (ticketByMonth[month] || 0) + total;
-    countByMonth[month] = (countByMonth[month] || 0) + 1;
+  // Ventas por categoría
+  const catRevMap = {};
+  for (const p of topProducts) {
+    const catId = p.categoryId;
+    const catName = categoryMap[catId] || 'Sin categoría';
+    if (!catRevMap[catId]) catRevMap[catId] = { name: catName, revenue: 0, qty: 0 };
+    catRevMap[catId].revenue += p.revenue;
+    catRevMap[catId].qty += p.qty;
   }
+  const salesByCategory = Object.values(catRevMap).sort((a, b) => b.revenue - a.revenue);
+
+  // 5. Procesar pagos
+  const pmRevMap = {};
+  for (const payment of payments) {
+    const attrs = payment.attributes || {};
+    if (attrs.canceled) continue;
+
+    const saleId = payment.relationships?.sale?.data?.id;
+    if (!saleId || !saleDateMap[saleId]) continue;
+
+    const pmId = payment.relationships?.paymentMethod?.data?.id;
+    const pmName = pmMap[pmId] || `Método ${pmId}`;
+    const amount = parseFloat(attrs.amount || 0);
+
+    if (!pmRevMap[pmName]) pmRevMap[pmName] = { name: pmName, total: 0, count: 0 };
+    pmRevMap[pmName].total += amount;
+    pmRevMap[pmName].count++;
+  }
+  const paymentsByMethod = Object.values(pmRevMap).sort((a, b) => b.total - a.total);
+
+  // 6. Ticket promedio por mes
   const avgTicketByMonth = {};
   for (const [m, sum] of Object.entries(ticketByMonth)) {
     avgTicketByMonth[m] = countByMonth[m] ? Math.round(sum / countByMonth[m]) : 0;
@@ -174,35 +202,12 @@ export async function syncFudo() {
   const totalRevenue = Object.values(byDay).reduce((s, v) => s + v, 0);
   const avgTicket = totalClosed > 0 ? Math.round(totalRevenue / totalClosed) : 0;
 
-  const ventas_v1 = {
-    byDay, byMonth, byWeek,
-    topProducts: topProducts.slice(0, 500),
-    avgTicketByMonth,
-    stats: { totalClosed, totalCanceled, avgTicket },
-    last_sync_date: new Date().toISOString()
-  };
-
-  // Procesar pagos (v2)
-  const paymentMap = {};
-  for (const p of payments) {
-    const attrs = p.attributes || {};
-    const name = attrs.paymentMethodName || attrs.name || 'Otro';
-    const amount = parseFloat(attrs.amount || attrs.total || 0);
-    if (!paymentMap[name]) paymentMap[name] = { name, total: 0, count: 0 };
-    paymentMap[name].total += amount;
-    paymentMap[name].count++;
-  }
-  const paymentsByMethod = Object.values(paymentMap).sort((a, b) => b.total - a.total);
-
-  // Categorías - re-usar de v2 existente si no cambia (order-items no tienen categoría directamente)
-  const salesByCategory = existingV2?.value?.salesByCategory || [];
-
-  // Heatmap día de semana
+  // 7. Heatmap días de la semana
   const dowMap = {};
+  const DAYS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
   for (const [date, total] of Object.entries(byDay)) {
     const d = new Date(date + 'T12:00:00');
-    const days = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
-    const dayName = days[d.getDay()];
+    const dayName = DAYS[d.getDay()];
     if (!dowMap[dayName]) dowMap[dayName] = { day: dayName, total: 0, count: 0 };
     dowMap[dayName].total += total;
     dowMap[dayName].count++;
@@ -211,6 +216,15 @@ export async function syncFudo() {
     ...d,
     avg: d.count > 0 ? Math.round(d.total / d.count) : 0
   }));
+
+  // 8. Guardar en Supabase
+  const ventas_v1 = {
+    byDay, byMonth, byWeek,
+    topProducts: topProducts.slice(0, 500),
+    avgTicketByMonth,
+    stats: { totalClosed, totalCanceled, avgTicket },
+    last_sync_date: new Date().toISOString()
+  };
 
   const ventas_v2 = {
     paymentsByMethod,
@@ -221,16 +235,21 @@ export async function syncFudo() {
     last_sync_date: new Date().toISOString()
   };
 
-  // Guardar en Supabase
   await supabase.from('deniks_cache').upsert([
     { key: 'ventas_v1', value: ventas_v1, updated_at: new Date().toISOString() },
     { key: 'ventas_v2', value: ventas_v2, updated_at: new Date().toISOString() }
   ], { onConflict: 'key' });
 
-  return { success: true, totalClosed, totalCanceled, lastDate };
+  return {
+    success: true,
+    totalClosed,
+    totalCanceled,
+    salesFetched: sales.length,
+    itemsFetched: items.length,
+    paymentsFetched: payments.length
+  };
 }
 
-// Handler HTTP
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
@@ -238,10 +257,6 @@ export default async function handler(req, res) {
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return res.status(401).json({ error: 'No autorizado' });
   }
-
-  // TODO: En producción el botón "Actualizar" del sync-bar no pasará el CRON_SECRET.
-  // Para habilitarlo desde el frontend, considerar un endpoint separado con autenticación
-  // por sesión, o exponer un token público de solo-sync con rate limiting.
 
   try {
     const result = await syncFudo();
