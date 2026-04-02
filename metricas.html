@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FUDO API Explorer — Piedra Pasillo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #171410;
+      --sidebar-bg:  #1f1b14;
+      --card-bg:     #241f17;
+      --card-hover:  #2c2619;
+      --border:      #332c1f;
+      --border-soft: #2a2318;
+      --gold:        #c4a265;
+      --gold-light:  #d9b87a;
+      --gold-dim:    #8a6e42;
+      --cream:       #ede8dc;
+      --cream-dim:   #b5a98f;
+      --cream-muted: #7a6f5a;
+      --olive:       #3d4528;
+      --olive-light: #4d5733;
+      --green:       #7a9e5a;
+      --red:         #c46055;
+      --blue:        #6b8fbf;
+      --yellow:      #c4a265;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--cream);
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR ── */
+    #sidebar {
+      width: 240px;
+      min-width: 240px;
+      background: var(--sidebar-bg);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    #sidebar-header {
+      padding: 20px 20px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      color: var(--cream-muted);
+      text-decoration: none;
+      margin-bottom: 16px;
+      transition: color 0.15s;
+    }
+    .back-btn:hover { color: var(--gold-light); }
+    .back-btn svg {
+      transition: transform 0.2s;
+    }
+    .back-btn:hover svg { transform: translateX(-3px); }
+
+    .logo-label {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gold-light);
+      letter-spacing: 0.3px;
+    }
+
+    .logo-sub {
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--cream-muted);
+      margin-top: 3px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .version-badge {
+      display: inline-block;
+      margin-top: 10px;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 1px;
+      color: var(--gold-dim);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 2px 8px;
+      text-transform: uppercase;
+    }
+
+    .nav-section-label {
+      padding: 16px 20px 6px;
+      font-size: 9.5px;
+      font-weight: 600;
+      letter-spacing: 1.8px;
+      text-transform: uppercase;
+      color: var(--cream-muted);
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 20px;
+      cursor: pointer;
+      border-radius: 6px;
+      margin: 1px 8px;
+      transition: background 0.15s, color 0.15s;
+      font-size: 13px;
+      font-weight: 400;
+      color: var(--cream-muted);
+      border-left: 2px solid transparent;
+    }
+
+    .nav-item:hover {
+      background: rgba(196,162,101,0.06);
+      color: var(--cream);
+    }
+
+    .nav-item.active {
+      background: rgba(196,162,101,0.1);
+      color: var(--gold-light);
+      font-weight: 500;
+      border-left-color: var(--gold);
+    }
+
+    .nav-icon { font-size: 14px; width: 18px; text-align: center; }
+
+    .nav-count {
+      margin-left: auto;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--cream-muted);
+      background: var(--border-soft);
+      border-radius: 10px;
+      padding: 1px 7px;
+    }
+
+    .nav-item.active .nav-count {
+      background: rgba(196,162,101,0.15);
+      color: var(--gold);
+    }
+
+    /* ── MAIN ── */
+    #main {
+      flex: 1;
+      min-width: 0;
+      width: 100%;
+      overflow-y: auto;
+      padding: 40px 44px;
+      background: var(--bg);
+    }
+
+    .page { display: none; width: 100%; }
+    .page.active { display: block; width: 100%; }
+
+    /* PAGE HEADER */
+    .page-header { margin-bottom: 32px; }
+
+    .page-header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--cream);
+      line-height: 1.2;
+    }
+
+    .endpoint-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 11.5px;
+      font-family: 'Inter', monospace;
+      font-weight: 500;
+      background: var(--olive);
+      color: var(--green);
+      border-radius: 4px;
+      padding: 4px 12px;
+      letter-spacing: 0.3px;
+    }
+
+    .endpoint-pill::before {
+      content: 'GET';
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      background: var(--green);
+      color: var(--bg);
+      border-radius: 2px;
+      padding: 1px 5px;
+    }
+
+    .page-header .desc {
+      margin-top: 14px;
+      font-size: 14px;
+      font-weight: 300;
+      color: var(--cream-dim);
+      line-height: 1.75;
+      max-width: 680px;
+    }
+
+    .page-header .desc strong { color: var(--cream); font-weight: 500; }
+
+    /* DIVIDER */
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin: 28px 0 18px;
+    }
+
+    .section-divider span {
+      font-family: 'Playfair Display', serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gold);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .section-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* STATS */
+    .stats-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+
+    .stat-box {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 22px;
+      text-align: center;
+      min-width: 90px;
+    }
+
+    .stat-num {
+      font-family: 'Playfair Display', serif;
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--gold-light);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 10.5px;
+      color: var(--cream-muted);
+      margin-top: 4px;
+      font-weight: 400;
+      letter-spacing: 0.3px;
+    }
+
+    /* FIELDS GRID */
+    .fields-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .field-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 16px;
+      transition: border-color 0.15s;
+    }
+
+    .field-card:hover { border-color: var(--gold-dim); }
+
+    .field-name {
+      font-size: 12.5px;
+      font-family: 'Inter', monospace;
+      font-weight: 600;
+      color: var(--gold-light);
+    }
+
+    .field-type {
+      display: inline-block;
+      margin-top: 5px;
+      font-size: 9.5px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      background: var(--olive);
+      color: var(--green);
+      border-radius: 3px;
+      padding: 1px 7px;
+    }
+
+    .field-desc {
+      margin-top: 8px;
+      font-size: 12px;
+      font-weight: 300;
+      color: var(--cream-dim);
+      line-height: 1.55;
+    }
+
+    /* EXAMPLES */
+    .examples-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 18px;
+    }
+
+    .ex-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    .ex-card:hover {
+      border-color: var(--gold-dim);
+      transform: translateY(-2px);
+    }
+
+    .ex-card-top {
+      padding: 14px 18px;
+      background: var(--card-hover);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .ex-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--cream);
+    }
+
+    .ex-id {
+      font-size: 10.5px;
+      font-family: 'Inter', monospace;
+      color: var(--cream-muted);
+      background: var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+    }
+
+    .ex-body { padding: 14px 18px; }
+
+    .ex-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border-soft);
+      gap: 16px;
+    }
+    .ex-row:last-child { border-bottom: none; }
+
+    .ex-key {
+      font-size: 11.5px;
+      font-weight: 400;
+      color: var(--cream-muted);
+      flex-shrink: 0;
+      min-width: 100px;
+    }
+
+    .ex-val {
+      font-size: 12.5px;
+      font-weight: 400;
+      color: var(--cream);
+      text-align: right;
+      word-break: break-word;
+    }
+
+    /* TAGS */
+    .tag {
+      display: inline-block;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 2px 9px;
+    }
+
+    .tag-green  { background: rgba(122,158,90,0.15);  color: #8ec06a; }
+    .tag-red    { background: rgba(196,96,85,0.15);   color: #d97a72; }
+    .tag-gold   { background: rgba(196,162,101,0.15); color: var(--gold-light); }
+    .tag-olive  { background: rgba(61,69,40,0.5);     color: #8fa868; }
+    .tag-muted  { background: var(--border);          color: var(--cream-muted); }
+    .tag-blue   { background: rgba(107,143,191,0.15); color: #8aabcf; }
+
+    .val-red    { color: #d97a72; }
+    .val-green  { color: #8ec06a; }
+    .val-gold   { color: var(--gold-light); }
+    .val-muted  { color: var(--cream-muted); font-style: italic; }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #3d3424; }
+  </style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div id="sidebar-header">
+    <a href="/" class="back-btn">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Volver
+    </a>
+    <div class="logo-label">FUDO Explorer</div>
+    <div class="logo-sub">Piedra Pasillo</div>
+    <div class="version-badge">v1alpha1</div>
+  </div>
+  <div class="nav-section-label">Entidades</div>
+
+  <div class="nav-item active" onclick="showPage('products', this)">
+    <span class="nav-icon">🍽️</span> Productos <span class="nav-count">250+</span>
+  </div>
+  <div class="nav-item" onclick="showPage('items', this)">
+    <span class="nav-icon">🧾</span> Items <span class="nav-count">250+</span>
+  </div>
+  <div class="nav-item" onclick="showPage('sales', this)">
+    <span class="nav-icon">💰</span> Ventas <span class="nav-count">250+</span>
+  </div>
+  <div class="nav-item" onclick="showPage('customers', this)">
+    <span class="nav-icon">👥</span> Clientes <span class="nav-count">28</span>
+  </div>
+  <div class="nav-item" onclick="showPage('payments', this)">
+    <span class="nav-icon">💳</span> Pagos <span class="nav-count">250+</span>
+  </div>
+  <div class="nav-item" onclick="showPage('tables', this)">
+    <span class="nav-icon">🪑</span> Mesas <span class="nav-count">58</span>
+  </div>
+  <div class="nav-item" onclick="showPage('users', this)">
+    <span class="nav-icon">👤</span> Usuarios <span class="nav-count">34</span>
+  </div>
+  <div class="nav-item" onclick="showPage('kitchens', this)">
+    <span class="nav-icon">👨‍🍳</span> Cocinas <span class="nav-count">4</span>
+  </div>
+  <div class="nav-item" onclick="showPage('roles', this)">
+    <span class="nav-icon">🔑</span> Roles <span class="nav-count">4</span>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main id="main">
+
+  <!-- ── PRODUCTS ── -->
+  <div id="page-products" class="page active">
+    <div class="page-header">
+      <h1>Productos</h1>
+      <div class="endpoint-pill">/v1alpha1/products</div>
+      <p class="desc">Los <strong>productos</strong> son los ítems del menú del restaurante. Cada producto tiene un nombre, precio de venta, categoría, cocina asignada y configuración de visibilidad. Se usan para armar el menú digital, QR, o de delivery. Pueden estar activos o inactivos, y algunos tienen control de stock habilitado.</p>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-num">250+</div><div class="stat-label">Registros</div></div>
+      <div class="stat-box"><div class="stat-num">15</div><div class="stat-label">Campos</div></div>
+      <div class="stat-box"><div class="stat-num">4</div><div class="stat-label">Cocinas</div></div>
+    </div>
+    <div class="section-divider"><span>Campos disponibles</span></div>
+    <div class="fields-grid">
+      <div class="field-card"><div class="field-name">name</div><div class="field-type">string</div><div class="field-desc">Nombre del producto tal como aparece en el menú.</div></div>
+      <div class="field-card"><div class="field-name">price</div><div class="field-type">float</div><div class="field-desc">Precio de venta al público en moneda local.</div></div>
+      <div class="field-card"><div class="field-name">active</div><div class="field-type">boolean</div><div class="field-desc">Si el producto está disponible actualmente para la venta.</div></div>
+      <div class="field-card"><div class="field-name">cost</div><div class="field-type">float</div><div class="field-desc">Costo de producción del ítem (puede ser nulo si no se cargó).</div></div>
+      <div class="field-card"><div class="field-name">description</div><div class="field-type">string</div><div class="field-desc">Descripción del plato para menú digital o QR.</div></div>
+      <div class="field-card"><div class="field-name">favourite</div><div class="field-type">boolean</div><div class="field-desc">Marcado como favorito para destacarlo en pantalla de caja.</div></div>
+      <div class="field-card"><div class="field-name">imageUrl</div><div class="field-type">string</div><div class="field-desc">URL de la imagen del plato para el menú online o QR.</div></div>
+      <div class="field-card"><div class="field-name">stockControl</div><div class="field-type">boolean</div><div class="field-desc">Si tiene control de inventario habilitado.</div></div>
+      <div class="field-card"><div class="field-name">stock</div><div class="field-type">integer</div><div class="field-desc">Unidades disponibles (si stockControl es true).</div></div>
+      <div class="field-card"><div class="field-name">preparationTime</div><div class="field-type">integer</div><div class="field-desc">Tiempo estimado de preparación en minutos.</div></div>
+      <div class="field-card"><div class="field-name">sellAlone</div><div class="field-type">boolean</div><div class="field-desc">Si puede venderse individualmente o solo como parte de combo.</div></div>
+      <div class="field-card"><div class="field-name">enableOnlineMenu</div><div class="field-type">boolean</div><div class="field-desc">Si se muestra en el menú online.</div></div>
+      <div class="field-card"><div class="field-name">enableQrMenu</div><div class="field-type">boolean</div><div class="field-desc">Si aparece en el menú QR del local.</div></div>
+      <div class="field-card"><div class="field-name">position</div><div class="field-type">integer</div><div class="field-desc">Orden de aparición dentro de su categoría.</div></div>
+      <div class="field-card"><div class="field-name">code</div><div class="field-type">string</div><div class="field-desc">Código interno del producto (integraciones / código de barras).</div></div>
+    </div>
+    <div class="section-divider"><span>3 ejemplos reales</span></div>
+    <div class="examples-grid">
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Pan con Manteca</span><span class="ex-id">ID #10</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">precio</span><span class="ex-val val-gold">$7.000</span></div>
+          <div class="ex-row"><span class="ex-key">activo</span><span class="ex-val"><span class="tag tag-green">Activo</span></span></div>
+          <div class="ex-row"><span class="ex-key">favorito</span><span class="ex-val"><span class="tag tag-gold">Destacado</span></span></div>
+          <div class="ex-row"><span class="ex-key">cocina</span><span class="ex-val">Cocina (#2)</span></div>
+          <div class="ex-row"><span class="ex-key">stock control</span><span class="ex-val"><span class="tag tag-olive">Habilitado</span></span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Melena</span><span class="ex-id">ID #12</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">precio</span><span class="ex-val val-gold">$26.000</span></div>
+          <div class="ex-row"><span class="ex-key">activo</span><span class="ex-val"><span class="tag tag-green">Activo</span></span></div>
+          <div class="ex-row"><span class="ex-key">favorito</span><span class="ex-val"><span class="tag tag-muted">No</span></span></div>
+          <div class="ex-row"><span class="ex-key">cocina</span><span class="ex-val">Cocina (#2)</span></div>
+          <div class="ex-row"><span class="ex-key">stock control</span><span class="ex-val"><span class="tag tag-olive">Habilitado</span></span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Cracker</span><span class="ex-id">ID #11</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">precio</span><span class="ex-val val-gold">$14.000</span></div>
+          <div class="ex-row"><span class="ex-key">activo</span><span class="ex-val"><span class="tag tag-red">Inactivo</span></span></div>
+          <div class="ex-row"><span class="ex-key">favorito</span><span class="ex-val"><span class="tag tag-muted">No</span></span></div>
+          <div class="ex-row"><span class="ex-key">cocina</span><span class="ex-val val-muted">Sin asignar</span></div>
+          <div class="ex-row"><span class="ex-key">stock control</span><span class="ex-val"><span class="tag tag-olive">Habilitado</span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ITEMS ── -->
+  <div id="page-items" class="page">
+    <div class="page-header">
+      <h1>Items</h1>
+      <div class="endpoint-pill">/v1alpha1/items</div>
+      <p class="desc">Un <strong>ítem</strong> es cada línea de pedido dentro de una venta. Cuando un mozo agrega un plato a la comanda, se crea un ítem vinculado a esa venta y a un producto. Registran el precio al momento de la venta, la cantidad, si fue cancelado y el motivo. Son el nivel más granular del sistema de ventas.</p>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-num">250+</div><div class="stat-label">Registros</div></div>
+      <div class="stat-box"><div class="stat-num">8</div><div class="stat-label">Campos</div></div>
+    </div>
+    <div class="section-divider"><span>Campos disponibles</span></div>
+    <div class="fields-grid">
+      <div class="field-card"><div class="field-name">createdAt</div><div class="field-type">datetime</div><div class="field-desc">Cuándo fue agregado el ítem a la comanda.</div></div>
+      <div class="field-card"><div class="field-name">quantity</div><div class="field-type">float</div><div class="field-desc">Cantidad del producto pedido (puede ser fraccionado).</div></div>
+      <div class="field-card"><div class="field-name">price</div><div class="field-type">float</div><div class="field-desc">Precio unitario al momento de la venta.</div></div>
+      <div class="field-card"><div class="field-name">canceled</div><div class="field-type">boolean</div><div class="field-desc">Si el ítem fue cancelado antes del cierre de la venta.</div></div>
+      <div class="field-card"><div class="field-name">cancellationComment</div><div class="field-type">string</div><div class="field-desc">Motivo de cancelación ingresado por el mozo.</div></div>
+      <div class="field-card"><div class="field-name">comment</div><div class="field-type">string</div><div class="field-desc">Observación del cliente (ej: "sin cebolla").</div></div>
+      <div class="field-card"><div class="field-name">paid</div><div class="field-type">boolean</div><div class="field-desc">Si este ítem fue incluido en un pago.</div></div>
+      <div class="field-card"><div class="field-name">status</div><div class="field-type">string</div><div class="field-desc">Estado en el sistema KDS: pendiente, preparando, listo.</div></div>
+    </div>
+    <div class="section-divider"><span>3 ejemplos reales</span></div>
+    <div class="examples-grid">
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Ítem cancelado</span><span class="ex-id">ID #1</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">producto</span><span class="ex-val">Product #43</span></div>
+          <div class="ex-row"><span class="ex-key">venta</span><span class="ex-val">Sale #3</span></div>
+          <div class="ex-row"><span class="ex-key">precio</span><span class="ex-val val-gold">$600</span></div>
+          <div class="ex-row"><span class="ex-key">cantidad</span><span class="ex-val">1</span></div>
+          <div class="ex-row"><span class="ex-key">cancelado</span><span class="ex-val"><span class="tag tag-red">Sí — "error"</span></span></div>
+          <div class="ex-row"><span class="ex-key">pagado</span><span class="ex-val"><span class="tag tag-muted">No</span></span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Ítem pagado</span><span class="ex-id">ID #5</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">producto</span><span class="ex-val">Product #60</span></div>
+          <div class="ex-row"><span class="ex-key">venta</span><span class="ex-val">Sale #4</span></div>
+          <div class="ex-row"><span class="ex-key">precio</span><span class="ex-val val-gold">$8.100</span></div>
+          <div class="ex-row"><span class="ex-key">cantidad</span><span class="ex-val">1</span></div>
+          <div class="ex-row"><span class="ex-key">cancelado</span><span class="ex-val"><span class="tag tag-red">Sí</span></span></div>
+          <div class="ex-row"><span class="ex-key">pagado</span><span class="ex-val"><span class="tag tag-green">Sí</span></span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Ítem de comanda</span><span class="ex-id">ID #2</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">producto</span><span class="ex-val">Product #61</span></div>
+          <div class="ex-row"><span class="ex-key">venta</span><span class="ex-val">Sale #3</span></div>
+          <div class="ex-row"><span class="ex-key">precio</span><span class="ex-val val-gold">$9.700</span></div>
+          <div class="ex-row"><span class="ex-key">cantidad</span><span class="ex-val">1</span></div>
+          <div class="ex-row"><span class="ex-key">cancelado</span><span class="ex-val"><span class="tag tag-red">Sí — "sdf"</span></span></div>
+          <div class="ex-row"><span class="ex-key">fecha</span><span class="ex-val">01/09/2023 23:53</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SALES ── -->
+  <div id="page-sales" class="page">
+    <div class="page-header">
+      <h1>Ventas</h1>
+      <div class="endpoint-pill">/v1alpha1/sales</div>
+      <p class="desc">Las <strong>ventas</strong> representan cada sesión de consumo en el restaurante. Se abren cuando el mozo crea una comanda, pueden tener múltiples ítems, descuentos y pagos, y se cierran al cobrar. Registran quién atendió, qué mesa, cuántos comensales y el total cobrado.</p>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-num">250+</div><div class="stat-label">Registros</div></div>
+      <div class="stat-box"><div class="stat-num">10</div><div class="stat-label">Campos</div></div>
+    </div>
+    <div class="section-divider"><span>Campos disponibles</span></div>
+    <div class="fields-grid">
+      <div class="field-card"><div class="field-name">createdAt</div><div class="field-type">datetime</div><div class="field-desc">Cuándo se abrió la mesa / comenzó la venta.</div></div>
+      <div class="field-card"><div class="field-name">closedAt</div><div class="field-type">datetime</div><div class="field-desc">Cuándo se cerró y cobró la venta.</div></div>
+      <div class="field-card"><div class="field-name">total</div><div class="field-type">float</div><div class="field-desc">Monto total cobrado en la venta.</div></div>
+      <div class="field-card"><div class="field-name">saleType</div><div class="field-type">enum</div><div class="field-desc">EAT-IN (local), TAKE-AWAY (para llevar), DELIVERY (domicilio).</div></div>
+      <div class="field-card"><div class="field-name">saleState</div><div class="field-type">enum</div><div class="field-desc">OPEN (abierta), CLOSED (cobrada), CANCELED (cancelada).</div></div>
+      <div class="field-card"><div class="field-name">people</div><div class="field-type">integer</div><div class="field-desc">Cantidad de comensales en la mesa.</div></div>
+      <div class="field-card"><div class="field-name">customerName</div><div class="field-type">string</div><div class="field-desc">Nombre del cliente en ventas sin cuenta registrada.</div></div>
+      <div class="field-card"><div class="field-name">comment</div><div class="field-type">string</div><div class="field-desc">Observación general de la venta.</div></div>
+      <div class="field-card"><div class="field-name">expectedPayments</div><div class="field-type">object</div><div class="field-desc">Pagos esperados si se dividió la cuenta.</div></div>
+      <div class="field-card"><div class="field-name">table / waiter / customer</div><div class="field-type">relation</div><div class="field-desc">Referencias a la mesa, mozo y cliente asociados.</div></div>
+    </div>
+    <div class="section-divider"><span>3 ejemplos reales</span></div>
+    <div class="examples-grid">
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Venta cerrada</span><span class="ex-id">ID #1</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">tipo</span><span class="ex-val"><span class="tag tag-olive">EAT-IN</span></span></div>
+          <div class="ex-row"><span class="ex-key">estado</span><span class="ex-val"><span class="tag tag-muted">CLOSED</span></span></div>
+          <div class="ex-row"><span class="ex-key">mesa</span><span class="ex-val">Table #12</span></div>
+          <div class="ex-row"><span class="ex-key">comensales</span><span class="ex-val">1</span></div>
+          <div class="ex-row"><span class="ex-key">apertura</span><span class="ex-val">01/09/2023 19:43</span></div>
+          <div class="ex-row"><span class="ex-key">cierre</span><span class="ex-val">01/09/2023 19:50</span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Venta con cliente</span><span class="ex-id">ID #2</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">tipo</span><span class="ex-val"><span class="tag tag-olive">EAT-IN</span></span></div>
+          <div class="ex-row"><span class="ex-key">estado</span><span class="ex-val"><span class="tag tag-muted">CLOSED</span></span></div>
+          <div class="ex-row"><span class="ex-key">mesa</span><span class="ex-val">Table #37</span></div>
+          <div class="ex-row"><span class="ex-key">mozo</span><span class="ex-val">Tablet 1 (#2)</span></div>
+          <div class="ex-row"><span class="ex-key">cliente</span><span class="ex-val">Customer #2</span></div>
+          <div class="ex-row"><span class="ex-key">comensales</span><span class="ex-val">2</span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Venta cancelada</span><span class="ex-id">ID #4</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">tipo</span><span class="ex-val"><span class="tag tag-olive">EAT-IN</span></span></div>
+          <div class="ex-row"><span class="ex-key">estado</span><span class="ex-val"><span class="tag tag-red">CANCELED</span></span></div>
+          <div class="ex-row"><span class="ex-key">comensales</span><span class="ex-val">1</span></div>
+          <div class="ex-row"><span class="ex-key">apertura</span><span class="ex-val">07/10/2023 02:22</span></div>
+          <div class="ex-row"><span class="ex-key">cierre</span><span class="ex-val">07/10/2023 04:23</span></div>
+          <div class="ex-row"><span class="ex-key">items</span><span class="ex-val">4 ítems cancelados</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CUSTOMERS ── -->
+  <div id="page-customers" class="page">
+    <div class="page-header">
+      <h1>Clientes</h1>
+      <div class="endpoint-pill">/v1alpha1/customers</div>
+      <p class="desc">Los <strong>clientes</strong> son personas registradas en el sistema. Permiten asociar ventas a clientes recurrentes, asignarles un descuento permanente y habilitarles una <strong>cuenta corriente</strong> (fiado). El saldo negativo indica deuda con el local. Es el módulo de fidelización del restaurante.</p>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-num">28</div><div class="stat-label">Clientes</div></div>
+      <div class="stat-box"><div class="stat-num">14</div><div class="stat-label">Campos</div></div>
+    </div>
+    <div class="section-divider"><span>Campos disponibles</span></div>
+    <div class="fields-grid">
+      <div class="field-card"><div class="field-name">name</div><div class="field-type">string</div><div class="field-desc">Nombre completo del cliente.</div></div>
+      <div class="field-card"><div class="field-name">email</div><div class="field-type">string</div><div class="field-desc">Email de contacto (opcional).</div></div>
+      <div class="field-card"><div class="field-name">phone</div><div class="field-type">string</div><div class="field-desc">Teléfono del cliente.</div></div>
+      <div class="field-card"><div class="field-name">active</div><div class="field-type">boolean</div><div class="field-desc">Si el cliente está activo en el sistema.</div></div>
+      <div class="field-card"><div class="field-name">discountPercentage</div><div class="field-type">float</div><div class="field-desc">Descuento automático aplicado a sus ventas (0–100%).</div></div>
+      <div class="field-card"><div class="field-name">houseAccountEnabled</div><div class="field-type">boolean</div><div class="field-desc">Si tiene habilitada la cuenta corriente (fiado).</div></div>
+      <div class="field-card"><div class="field-name">houseAccountBalance</div><div class="field-type">float</div><div class="field-desc">Saldo de su cuenta corriente. Negativo = deuda con el local.</div></div>
+      <div class="field-card"><div class="field-name">birthDate</div><div class="field-type">date</div><div class="field-desc">Fecha de nacimiento (para campañas de cumpleaños).</div></div>
+      <div class="field-card"><div class="field-name">address</div><div class="field-type">string</div><div class="field-desc">Dirección del cliente (para delivery).</div></div>
+      <div class="field-card"><div class="field-name">vatNumber</div><div class="field-type">string</div><div class="field-desc">CUIT/CUIL para facturación.</div></div>
+      <div class="field-card"><div class="field-name">fiscalAddress</div><div class="field-type">string</div><div class="field-desc">Domicilio fiscal para la factura.</div></div>
+      <div class="field-card"><div class="field-name">comment</div><div class="field-type">string</div><div class="field-desc">Notas internas sobre el cliente.</div></div>
+      <div class="field-card"><div class="field-name">origin</div><div class="field-type">string</div><div class="field-desc">Cómo llegó el cliente (referido, web, etc.).</div></div>
+      <div class="field-card"><div class="field-name">createdAt</div><div class="field-type">datetime</div><div class="field-desc">Fecha de registro del cliente.</div></div>
+    </div>
+    <div class="section-divider"><span>3 ejemplos reales</span></div>
+    <div class="examples-grid">
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Gustavo Romañach</span><span class="ex-id">ID #2</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">activo</span><span class="ex-val"><span class="tag tag-green">Sí</span></span></div>
+          <div class="ex-row"><span class="ex-key">descuento</span><span class="ex-val"><span class="tag tag-gold">100%</span></span></div>
+          <div class="ex-row"><span class="ex-key">cta. corriente</span><span class="ex-val"><span class="tag tag-olive">Habilitada</span></span></div>
+          <div class="ex-row"><span class="ex-key">saldo</span><span class="ex-val val-red">— $659.910</span></div>
+          <div class="ex-row"><span class="ex-key">registrado</span><span class="ex-val">01/09/2023</span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Tomi Couriel</span><span class="ex-id">ID #3</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">activo</span><span class="ex-val"><span class="tag tag-green">Sí</span></span></div>
+          <div class="ex-row"><span class="ex-key">descuento</span><span class="ex-val"><span class="tag tag-gold">100%</span></span></div>
+          <div class="ex-row"><span class="ex-key">cta. corriente</span><span class="ex-val"><span class="tag tag-olive">Habilitada</span></span></div>
+          <div class="ex-row"><span class="ex-key">saldo</span><span class="ex-val val-red">— $1.565.690</span></div>
+          <div class="ex-row"><span class="ex-key">registrado</span><span class="ex-val">01/09/2023</span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Christian Soldan</span><span class="ex-id">ID #7</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">activo</span><span class="ex-val"><span class="tag tag-green">Sí</span></span></div>
+          <div class="ex-row"><span class="ex-key">descuento</span><span class="ex-val"><span class="tag tag-gold">100%</span></span></div>
+          <div class="ex-row"><span class="ex-key">cta. corriente</span><span class="ex-val"><span class="tag tag-olive">Habilitada</span></span></div>
+          <div class="ex-row"><span class="ex-key">saldo</span><span class="ex-val val-red">— $947.430</span></div>
+          <div class="ex-row"><span class="ex-key">registrado</span><span class="ex-val">09/10/2023</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── PAYMENTS ── -->
+  <div id="page-payments" class="page">
+    <div class="page-header">
+      <h1>Pagos</h1>
+      <div class="endpoint-pill">/v1alpha1/payments</div>
+      <p class="desc">Los <strong>pagos</strong> registran cada transacción de cobro asociada a una venta. Una venta puede tener múltiples pagos si el cliente paga con distintos métodos (efectivo + tarjeta) o si varios comensales pagan por separado. Cada pago referencia su método y la venta correspondiente.</p>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-num">250+</div><div class="stat-label">Registros</div></div>
+      <div class="stat-box"><div class="stat-num">6</div><div class="stat-label">Campos</div></div>
+    </div>
+    <div class="section-divider"><span>Campos disponibles</span></div>
+    <div class="fields-grid">
+      <div class="field-card"><div class="field-name">amount</div><div class="field-type">float</div><div class="field-desc">Monto cobrado en este pago.</div></div>
+      <div class="field-card"><div class="field-name">createdAt</div><div class="field-type">datetime</div><div class="field-desc">Fecha y hora en que se registró el pago.</div></div>
+      <div class="field-card"><div class="field-name">canceled</div><div class="field-type">boolean</div><div class="field-desc">Si el pago fue anulado.</div></div>
+      <div class="field-card"><div class="field-name">externalReference</div><div class="field-type">string</div><div class="field-desc">Referencia externa (ej: número de aprobación de tarjeta).</div></div>
+      <div class="field-card"><div class="field-name">paymentMethod</div><div class="field-type">relation</div><div class="field-desc">Método de pago: efectivo, tarjeta, QR, cuenta corriente, etc.</div></div>
+      <div class="field-card"><div class="field-name">sale</div><div class="field-type">relation</div><div class="field-desc">Venta a la que pertenece este pago.</div></div>
+    </div>
+    <div class="section-divider"><span>3 ejemplos reales</span></div>
+    <div class="examples-grid">
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Pago alto</span><span class="ex-id">ID #1</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">monto</span><span class="ex-val val-gold">$82.150</span></div>
+          <div class="ex-row"><span class="ex-key">método</span><span class="ex-val">PaymentMethod #1</span></div>
+          <div class="ex-row"><span class="ex-key">venta</span><span class="ex-val">Sale #4</span></div>
+          <div class="ex-row"><span class="ex-key">fecha</span><span class="ex-val">07/10/2023 04:23</span></div>
+          <div class="ex-row"><span class="ex-key">cancelado</span><span class="ex-val"><span class="tag tag-muted">No</span></span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Pago estándar</span><span class="ex-id">ID #3</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">monto</span><span class="ex-val val-gold">$17.900</span></div>
+          <div class="ex-row"><span class="ex-key">método</span><span class="ex-val">PaymentMethod #1</span></div>
+          <div class="ex-row"><span class="ex-key">venta</span><span class="ex-val">Sale #8</span></div>
+          <div class="ex-row"><span class="ex-key">fecha</span><span class="ex-val">07/10/2023 23:45</span></div>
+          <div class="ex-row"><span class="ex-key">cancelado</span><span class="ex-val"><span class="tag tag-muted">No</span></span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Pago mínimo</span><span class="ex-id">ID #5</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">monto</span><span class="ex-val val-gold">$700</span></div>
+          <div class="ex-row"><span class="ex-key">método</span><span class="ex-val">PaymentMethod #1</span></div>
+          <div class="ex-row"><span class="ex-key">venta</span><span class="ex-val">Sale #17</span></div>
+          <div class="ex-row"><span class="ex-key">fecha</span><span class="ex-val">09/10/2023 20:45</span></div>
+          <div class="ex-row"><span class="ex-key">cancelado</span><span class="ex-val"><span class="tag tag-muted">No</span></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TABLES ── -->
+  <div id="page-tables" class="page">
+    <div class="page-header">
+      <h1>Mesas</h1>
+      <div class="endpoint-pill">/v1alpha1/tables</div>
+      <p class="desc">Las <strong>mesas</strong> son los puntos físicos del salón. Cada una tiene un número, posición en la grilla del mapa (columna/fila), forma y tamaño. Están organizadas por sala. El mapa en Fudo refleja la distribución real del local, permitiendo que los mozos gestionen las mesas visualmente.</p>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-num">58</div><div class="stat-label">Mesas</div></div>
+      <div class="stat-box"><div class="stat-num">5</div><div class="stat-label">Campos</div></div>
+    </div>
+    <div class="section-divider"><span>Campos disponibles</span></div>
+    <div class="fields-grid">
+      <div class="field-card"><div class="field-name">number</div><div class="field-type">integer</div><div class="field-desc">Número visible de la mesa (el que ven mozos y clientes).</div></div>
+      <div class="field-card"><div class="field-name">column</div><div class="field-type">integer</div><div class="field-desc">Posición horizontal en la grilla del mapa del salón.</div></div>
+      <div class="field-card"><div class="field-name">row</div><div class="field-type">integer</div><div class="field-desc">Posición vertical en la grilla del mapa del salón.</div></div>
+      <div class="field-card"><div class="field-name">shape</div><div class="field-type">enum</div><div class="field-desc">"0" = cuadrada, "1" = redonda. Define el ícono visual.</div></div>
+      <div class="field-card"><div class="field-name">size</div><div class="field-type">enum</div><div class="field-desc">"s" = pequeña, "m" = mediana, "l" = grande.</div></div>
+      <div class="field-card"><div class="field-name">room</div><div class="field-type">relation</div><div class="field-desc">Sala a la que pertenece esta mesa.</div></div>
+    </div>
+    <div class="section-divider"><span>3 ejemplos reales</span></div>
+    <div class="examples-grid">
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Mesa 1 — Redonda</span><span class="ex-id">ID #1</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">número</span><span class="ex-val">1</span></div>
+          <div class="ex-row"><span class="ex-key">sala</span><span class="ex-val">Room #1</span></div>
+          <div class="ex-row"><span class="ex-key">forma</span><span class="ex-val"><span class="tag tag-blue">Redonda</span></span></div>
+          <div class="ex-row"><span class="ex-key">tamaño</span><span class="ex-val"><span class="tag tag-muted">Pequeña</span></span></div>
+          <div class="ex-row"><span class="ex-key">posición</span><span class="ex-val">col 17 · fila 19</span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Mesa 2 — Cuadrada</span><span class="ex-id">ID #2</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">número</span><span class="ex-val">2</span></div>
+          <div class="ex-row"><span class="ex-key">sala</span><span class="ex-val">Room #1</span></div>
+          <div class="ex-row"><span class="ex-key">forma</span><span class="ex-val"><span class="tag tag-gold">Cuadrada</span></span></div>
+          <div class="ex-row"><span class="ex-key">tamaño</span><span class="ex-val"><span class="tag tag-green">Grande</span></span></div>
+          <div class="ex-row"><span class="ex-key">posición</span><span class="ex-val">col 2 · fila 10</span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Mesa 8 — Cuadrada</span><span class="ex-id">ID #8</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">número</span><span class="ex-val">8</span></div>
+          <div class="ex-row"><span class="ex-key">sala</span><span class="ex-val">Room #1</span></div>
+          <div class="ex-row"><span class="ex-key">forma</span><span class="ex-val"><span class="tag tag-gold">Cuadrada</span></span></div>
+          <div class="ex-row"><span class="ex-key">tamaño</span><span class="ex-val"><span class="tag tag-green">Grande</span></span></div>
+          <div class="ex-row"><span class="ex-key">posición</span><span class="ex-val">col 1 · fila 8</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── USERS ── -->
+  <div id="page-users" class="page">
+    <div class="page-header">
+      <h1>Usuarios</h1>
+      <div class="endpoint-pill">/v1alpha1/users</div>
+      <p class="desc">Los <strong>usuarios</strong> son las personas que operan el sistema Fudo: mozos, encargados, administradores y dispositivos tablet. Cada usuario tiene un rol que define sus permisos. Los tablets son usuarios de sistema usados para la toma de pedidos. El código promocional es un identificador único por usuario.</p>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-num">34</div><div class="stat-label">Usuarios</div></div>
+      <div class="stat-box"><div class="stat-num">5</div><div class="stat-label">Campos</div></div>
+    </div>
+    <div class="section-divider"><span>Campos disponibles</span></div>
+    <div class="fields-grid">
+      <div class="field-card"><div class="field-name">name</div><div class="field-type">string</div><div class="field-desc">Nombre completo del usuario.</div></div>
+      <div class="field-card"><div class="field-name">email</div><div class="field-type">string</div><div class="field-desc">Email de acceso al sistema.</div></div>
+      <div class="field-card"><div class="field-name">active</div><div class="field-type">boolean</div><div class="field-desc">Si el usuario puede ingresar al sistema actualmente.</div></div>
+      <div class="field-card"><div class="field-name">admin</div><div class="field-type">boolean</div><div class="field-desc">Si tiene permisos de administrador completo.</div></div>
+      <div class="field-card"><div class="field-name">promotionalCode</div><div class="field-type">string</div><div class="field-desc">Código único. Formato: F.[LOCAL].[USUARIO].</div></div>
+      <div class="field-card"><div class="field-name">role</div><div class="field-type">relation</div><div class="field-desc">Rol asignado que define qué puede hacer en el sistema.</div></div>
+    </div>
+    <div class="section-divider"><span>3 ejemplos reales</span></div>
+    <div class="examples-grid">
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Tablet 1</span><span class="ex-id">ID #2</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">email</span><span class="ex-val">tablet@tablet.com</span></div>
+          <div class="ex-row"><span class="ex-key">activo</span><span class="ex-val"><span class="tag tag-green">Sí</span></span></div>
+          <div class="ex-row"><span class="ex-key">rol</span><span class="ex-val">Camarero (#3)</span></div>
+          <div class="ex-row"><span class="ex-key">código</span><span class="ex-val" style="font-size:11px;font-family:monospace">F.PIEDRAPASILLO.TABLET1</span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Yamila Montero</span><span class="ex-id">ID #6</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">email</span><span class="ex-val">yamila@yamila.com</span></div>
+          <div class="ex-row"><span class="ex-key">activo</span><span class="ex-val"><span class="tag tag-red">Inactivo</span></span></div>
+          <div class="ex-row"><span class="ex-key">rol</span><span class="ex-val">Camarero (#3)</span></div>
+          <div class="ex-row"><span class="ex-key">código</span><span class="ex-val" style="font-size:11px;font-family:monospace">F.PIEDRAPASILLO.YAMILA</span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Mauro Cristofanetti</span><span class="ex-id">ID #7</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">email</span><span class="ex-val">mauro@mauro.com</span></div>
+          <div class="ex-row"><span class="ex-key">activo</span><span class="ex-val"><span class="tag tag-red">Inactivo</span></span></div>
+          <div class="ex-row"><span class="ex-key">rol</span><span class="ex-val">Camarero (#3)</span></div>
+          <div class="ex-row"><span class="ex-key">código</span><span class="ex-val" style="font-size:11px;font-family:monospace">F.PIEDRAPASILLO.MAURO</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── KITCHENS ── -->
+  <div id="page-kitchens" class="page">
+    <div class="page-header">
+      <h1>Cocinas</h1>
+      <div class="endpoint-pill">/v1alpha1/kitchens</div>
+      <p class="desc">Las <strong>cocinas</strong> son las estaciones de trabajo del restaurante. Cada producto se asigna a una cocina para que las comandas lleguen al destino correcto. El sistema KDS (Kitchen Display System) muestra los pedidos según la estación. Piedra Pasillo tiene 4 estaciones: Caja, Cocina principal y dos zonas AFB.</p>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-num">4</div><div class="stat-label">Cocinas</div></div>
+      <div class="stat-box"><div class="stat-num">1</div><div class="stat-label">Campo</div></div>
+    </div>
+    <div class="section-divider"><span>Campos disponibles</span></div>
+    <div class="fields-grid">
+      <div class="field-card"><div class="field-name">name</div><div class="field-type">string</div><div class="field-desc">Nombre de la estación de cocina o barra.</div></div>
+    </div>
+    <div class="section-divider"><span>Las 4 cocinas del negocio</span></div>
+    <div class="examples-grid">
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">CAJA</span><span class="ex-id">ID #1</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">nombre</span><span class="ex-val">CAJA</span></div>
+          <div class="ex-row"><span class="ex-key">uso típico</span><span class="ex-val val-muted">Productos de caja y bebidas simples</span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Cocina</span><span class="ex-id">ID #2</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">nombre</span><span class="ex-val">Cocina</span></div>
+          <div class="ex-row"><span class="ex-key">uso típico</span><span class="ex-val val-muted">Cocina principal del local</span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Cocina AFB · Barra AFB</span><span class="ex-id">ID #3 y #4</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">COCINA AFB</span><span class="ex-val val-muted">Cocina zona AFB</span></div>
+          <div class="ex-row"><span class="ex-key">BARRA AFB</span><span class="ex-val val-muted">Barra zona AFB</span></div>
+          <div class="ex-row"><span class="ex-key">sector</span><span class="ex-val val-muted">Área independiente del local</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ROLES ── -->
+  <div id="page-roles" class="page">
+    <div class="page-header">
+      <h1>Roles</h1>
+      <div class="endpoint-pill">/v1alpha1/roles</div>
+      <p class="desc">Los <strong>roles</strong> definen qué puede hacer cada usuario dentro de Fudo. Son plantillas de permisos: desde el Admin con acceso total hasta el Camarero con permisos mínimos. Cubren ventas, productos, caja, reportes, stock, delivery y configuración del sistema.</p>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-num">4</div><div class="stat-label">Roles</div></div>
+      <div class="stat-box"><div class="stat-num">4</div><div class="stat-label">Campos</div></div>
+    </div>
+    <div class="section-divider"><span>Campos disponibles</span></div>
+    <div class="fields-grid">
+      <div class="field-card"><div class="field-name">name</div><div class="field-type">string</div><div class="field-desc">Nombre del rol.</div></div>
+      <div class="field-card"><div class="field-name">isWaiter</div><div class="field-type">boolean</div><div class="field-desc">Si los usuarios de este rol son mozos (ven sus mesas propias).</div></div>
+      <div class="field-card"><div class="field-name">isDeliveryman</div><div class="field-type">boolean</div><div class="field-desc">Si el rol corresponde a un repartidor de delivery.</div></div>
+      <div class="field-card"><div class="field-name">permissions</div><div class="field-type">array</div><div class="field-desc">Lista de acciones habilitadas: ventas, productos, stock, caja, reportes, delivery, configuración.</div></div>
+    </div>
+    <div class="section-divider"><span>Los 4 roles del negocio</span></div>
+    <div class="examples-grid">
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Admin</span><span class="ex-id">ID #1</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">es mozo</span><span class="ex-val"><span class="tag tag-muted">No</span></span></div>
+          <div class="ex-row"><span class="ex-key">repartidor</span><span class="ex-val"><span class="tag tag-muted">No</span></span></div>
+          <div class="ex-row"><span class="ex-key">permisos</span><span class="ex-val"><span class="tag tag-green">Acceso total</span></span></div>
+          <div class="ex-row"><span class="ex-key">incluye</span><span class="ex-val val-muted">Ventas, productos, stock, caja, reportes, usuarios, config.</span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Encargado</span><span class="ex-id">ID #2</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">es mozo</span><span class="ex-val"><span class="tag tag-green">Sí</span></span></div>
+          <div class="ex-row"><span class="ex-key">repartidor</span><span class="ex-val"><span class="tag tag-muted">No</span></span></div>
+          <div class="ex-row"><span class="ex-key">permisos</span><span class="ex-val"><span class="tag tag-gold">Acceso amplio</span></span></div>
+          <div class="ex-row"><span class="ex-key">incluye</span><span class="ex-val val-muted">Ventas, productos, caja, reportes básicos. Sin config.</span></div>
+        </div>
+      </div>
+      <div class="ex-card">
+        <div class="ex-card-top"><span class="ex-title">Camarero · Integraciones</span><span class="ex-id">ID #3 y #4</span></div>
+        <div class="ex-body">
+          <div class="ex-row"><span class="ex-key">Camarero</span><span class="ex-val"><span class="tag tag-olive">Mozo básico</span></span></div>
+          <div class="ex-row"><span class="ex-key">acceso</span><span class="ex-val val-muted">Agregar, mover y cancelar ítems</span></div>
+          <div class="ex-row"><span class="ex-key">Integraciones</span><span class="ex-val"><span class="tag tag-muted">Uso técnico / API</span></span></div>
+          <div class="ex-row"><span class="ex-key">permisos</span><span class="ex-val val-muted">Sin permisos definidos</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  function showPage(name, el) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('page-' + name).classList.add('active');
+    el.classList.add('active');
+    document.getElementById('main').scrollTop = 0;
+  }
+</script>
+
+</body>
+</html>

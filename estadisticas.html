@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Estadísticas — Deniks</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --bg:#171410;--sidebar-bg:#1f1b14;--card-bg:#241f17;--card-hover:#2c2619;
+      --border:#332c1f;--border-soft:#2a2318;
+      --gold:#c4a265;--gold-light:#d9b87a;--gold-dim:#8a6e42;
+      --cream:#ede8dc;--cream-dim:#b5a98f;--cream-muted:#7a6f5a;
+      --olive:#3d4528;--green:#7a9e5a;
+    }
+    html,body{height:100%;width:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--cream);}
+
+    /* BACK */
+    .back-btn{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:500;color:var(--cream-muted);text-decoration:none;transition:color .15s;margin-bottom:28px;}
+    .back-btn:hover{color:var(--gold-light);}
+    .back-btn:hover svg{transform:translateX(-3px);}
+    .back-btn svg{transition:transform .2s;}
+
+    main{max-width:1200px;margin:0 auto;padding:48px 44px;}
+
+    /* HEADER */
+    .page-header{margin-bottom:48px;}
+    .page-header h1{font-family:'Playfair Display',serif;font-size:36px;font-weight:700;color:var(--cream);}
+    .page-header p{margin-top:10px;font-size:14px;font-weight:300;color:var(--cream-dim);line-height:1.6;}
+
+    .section-divider{display:flex;align-items:center;gap:14px;margin-bottom:28px;}
+    .section-divider span{font-family:'Playfair Display',serif;font-size:12px;font-weight:600;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap;}
+    .section-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
+    /* CARDS GRID */
+    .cards-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:20px;}
+
+    .stat-card{
+      background:var(--card-bg);border:1px solid var(--border);border-radius:12px;
+      padding:28px;cursor:pointer;text-decoration:none;display:block;
+      transition:border-color .2s,transform .2s,background .2s;position:relative;overflow:hidden;
+    }
+    .stat-card::before{
+      content:'';position:absolute;inset:0;
+      background:linear-gradient(135deg,rgba(196,162,101,0.06) 0%,transparent 60%);
+      opacity:0;transition:opacity .2s;
+    }
+    .stat-card:hover{border-color:var(--gold-dim);transform:translateY(-3px);}
+    .stat-card:hover::before{opacity:1;}
+
+    .card-icon{font-size:32px;margin-bottom:16px;display:block;}
+    .card-title{font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:var(--cream);margin-bottom:8px;}
+    .card-desc{font-size:13px;font-weight:300;color:var(--cream-dim);line-height:1.6;margin-bottom:20px;}
+
+    .card-meta{display:flex;gap:12px;flex-wrap:wrap;}
+    .card-tag{font-size:10px;font-weight:600;letter-spacing:0.8px;background:var(--olive);color:var(--green);border-radius:3px;padding:2px 8px;text-transform:uppercase;}
+
+    .card-arrow{
+      position:absolute;bottom:22px;right:22px;
+      width:28px;height:28px;border-radius:50%;
+      background:rgba(196,162,101,0.1);border:1px solid rgba(196,162,101,0.2);
+      display:flex;align-items:center;justify-content:center;
+      transition:background .2s,border-color .2s;
+    }
+    .stat-card:hover .card-arrow{background:rgba(196,162,101,0.2);border-color:var(--gold-dim);}
+
+    /* COMING SOON */
+    .card-soon{opacity:0.45;cursor:not-allowed;pointer-events:none;}
+    .soon-badge{
+      position:absolute;top:16px;right:16px;
+      font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+      background:rgba(196,162,101,0.12);color:var(--gold-dim);
+      border:1px solid rgba(196,162,101,0.2);border-radius:3px;padding:2px 7px;
+    }
+
+    ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+  </style>
+</head>
+<body>
+<main>
+  <a href="/" class="back-btn">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Volver
+  </a>
+
+  <div class="page-header">
+    <h1>Estadísticas</h1>
+    <p>Analizá el rendimiento del negocio con datos reales de Fudo. Hacé clic en una tarjeta para ver el detalle.</p>
+  </div>
+
+  <div class="section-divider"><span>Disponibles</span></div>
+
+  <div class="cards-grid">
+
+    <a href="/estadisticas/ventas" class="stat-card">
+      <span class="card-icon">💰</span>
+      <div class="card-title">Ventas</div>
+      <div class="card-desc">Ingresos históricos, evolución por período y los productos más vendidos del local.</div>
+      <div class="card-meta">
+        <span class="card-tag">25.117 registros</span>
+        <span class="card-tag">Oct 2023 – Hoy</span>
+      </div>
+      <div class="card-arrow">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6h6M7 4l2 2-2 2" stroke="#c4a265" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </a>
+
+    <a href="/estadisticas/productos" class="stat-card">
+      <span class="card-icon">🍽️</span>
+      <div class="card-title">Productos</div>
+      <div class="card-desc">Ranking de productos por cantidad e ingresos, ventas por categoría y distribución del menú.</div>
+      <div class="card-meta">
+        <span class="card-tag">48.000+ ítems</span>
+        <span class="card-tag">44 categorías</span>
+      </div>
+      <div class="card-arrow">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6h6M7 4l2 2-2 2" stroke="#c4a265" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </a>
+
+    <a href="/estadisticas/pagos" class="stat-card">
+      <span class="card-icon">💳</span>
+      <div class="card-title">Pagos</div>
+      <div class="card-desc">Distribución de medios de pago, ranking detallado y participación de pagos digitales vs efectivo.</div>
+      <div class="card-meta">
+        <span class="card-tag">27.603 pagos</span>
+        <span class="card-tag">20 métodos</span>
+      </div>
+      <div class="card-arrow">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 6h6M7 4l2 2-2 2" stroke="#c4a265" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </a>
+
+  </div>
+
+</main>
+</body>
+</html>

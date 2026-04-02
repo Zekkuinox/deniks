@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deniks</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --gold:       #c4a265;
+      --gold-light: #d9b87a;
+      --gold-dim:   #8a6e42;
+      --cream:      #ede8dc;
+      --cream-dim:  #b5a98f;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    /* ── BACKGROUND SLIDESHOW ── */
+    .bg-slide {
+      position: fixed;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+      opacity: 0;
+      transition: opacity 1.8s ease-in-out;
+      z-index: 0;
+    }
+    .bg-slide.active { opacity: 1; }
+
+    .bg-1 { background-image: url('https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1920&q=85&fit=crop'); }
+    .bg-2 { background-image: url('https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=1920&q=85&fit=crop'); }
+    .bg-3 { background-image: url('https://images.unsplash.com/photo-1442512595331-e89e73853f31?w=1920&q=85&fit=crop'); }
+    .bg-4 { background-image: url('https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=1920&q=85&fit=crop'); }
+
+    /* ── OVERLAY ── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      background:
+        linear-gradient(
+          to bottom,
+          rgba(13, 10,  6, 0.45) 0%,
+          rgba(13, 10,  6, 0.60) 40%,
+          rgba(13, 10,  6, 0.72) 70%,
+          rgba(13, 10,  6, 0.88) 100%
+        );
+    }
+
+    /* subtle vignette */
+    .overlay::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%);
+    }
+
+    /* ── CONTENT ── */
+    .stage {
+      position: relative;
+      z-index: 2;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 0 24px;
+      gap: 0;
+    }
+
+    /* eyebrow */
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 18px;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeUp 0.9s 0.3s forwards;
+    }
+
+    /* main title */
+    .title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(72px, 12vw, 144px);
+      font-weight: 900;
+      line-height: 0.9;
+      color: var(--cream);
+      letter-spacing: -1px;
+      opacity: 0;
+      transform: translateY(16px);
+      animation: fadeUp 1s 0.5s forwards;
+    }
+
+    .title em {
+      font-style: italic;
+      color: var(--gold-light);
+    }
+
+    /* tagline */
+    .tagline {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(14px, 1.6vw, 18px);
+      font-weight: 400;
+      font-style: italic;
+      color: var(--cream-dim);
+      margin-top: 18px;
+      letter-spacing: 0.3px;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeUp 0.9s 0.8s forwards;
+    }
+
+    /* divider line */
+    .line-divider {
+      width: 60px;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--gold), transparent);
+      margin: 28px auto 0;
+      opacity: 0;
+      animation: fadeIn 0.8s 1.1s forwards;
+    }
+
+    /* buttons */
+    .buttons {
+      display: flex;
+      gap: 16px;
+      margin-top: 40px;
+      flex-wrap: wrap;
+      justify-content: center;
+      opacity: 0;
+      transform: translateY(12px);
+      animation: fadeUp 0.9s 1.2s forwards;
+    }
+
+    .btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 36px;
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      text-decoration: none;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      border: none;
+      outline: none;
+    }
+
+    .btn-primary {
+      background: var(--gold);
+      color: #171410;
+    }
+    .btn-primary:hover {
+      background: var(--gold-light);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(196,162,101,0.35);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--cream-dim);
+      border: 1px solid rgba(196,162,101,0.3);
+    }
+    .btn-ghost:hover {
+      border-color: rgba(196,162,101,0.6);
+      color: var(--cream);
+      transform: translateY(-2px);
+    }
+
+    .btn-ghost.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* soon badge */
+    .soon {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      background: rgba(196,162,101,0.15);
+      color: var(--gold-dim);
+      border: 1px solid rgba(196,162,101,0.25);
+      border-radius: 2px;
+      padding: 1px 5px;
+    }
+
+    /* footer */
+    .footer {
+      position: fixed;
+      bottom: 28px;
+      left: 0; right: 0;
+      text-align: center;
+      z-index: 2;
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(180,165,140,0.4);
+      opacity: 0;
+      animation: fadeIn 1s 2s forwards;
+    }
+
+    /* scroll dots */
+    .dots {
+      position: fixed;
+      right: 28px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      opacity: 0;
+      animation: fadeIn 1s 1.8s forwards;
+    }
+
+    .dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(196,162,101,0.3);
+      transition: background 0.4s, transform 0.4s;
+      cursor: pointer;
+    }
+    .dot.active {
+      background: var(--gold);
+      transform: scale(1.4);
+    }
+
+    /* ANIMATIONS */
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- BG SLIDES -->
+  <div class="bg-slide bg-1 active"></div>
+  <div class="bg-slide bg-2"></div>
+  <div class="bg-slide bg-3"></div>
+  <div class="bg-slide bg-4"></div>
+
+  <!-- OVERLAY -->
+  <div class="overlay"></div>
+
+  <!-- DOTS -->
+  <div class="dots">
+    <div class="dot active" onclick="goSlide(0)"></div>
+    <div class="dot" onclick="goSlide(1)"></div>
+    <div class="dot" onclick="goSlide(2)"></div>
+    <div class="dot" onclick="goSlide(3)"></div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="stage">
+    <div class="eyebrow">Sistema de gestión</div>
+
+    <h1 class="title">Den<em>iks</em></h1>
+
+    <p class="tagline">Inteligencia para tu negocio gastronómico</p>
+
+    <div class="line-divider"></div>
+
+    <div class="buttons">
+      <a href="/metricas" class="btn btn-primary">
+        Métricas
+      </a>
+      <a href="/estadisticas" class="btn btn-primary" style="background:rgba(101,72,38,0.45);color:var(--cream);border:1px solid rgba(196,162,101,0.45);">
+        Estadísticas
+      </a>
+      <button class="btn btn-ghost disabled">
+        Facturas <span class="soon">Pronto</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">Piedra Pasillo &nbsp;·&nbsp; Powered by Fudo API</div>
+
+  <script>
+    const slides = document.querySelectorAll('.bg-slide');
+    const dots   = document.querySelectorAll('.dot');
+    let current  = 0;
+    let timer;
+
+    function goSlide(n) {
+      slides[current].classList.remove('active');
+      dots[current].classList.remove('active');
+      current = n;
+      slides[current].classList.add('active');
+      dots[current].classList.add('active');
+      resetTimer();
+    }
+
+    function nextSlide() {
+      goSlide((current + 1) % slides.length);
+    }
+
+    function resetTimer() {
+      clearInterval(timer);
+      timer = setInterval(nextSlide, 5000);
+    }
+
+    resetTimer();
+  </script>
+</body>
+</html>

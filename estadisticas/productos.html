@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Productos — Deniks</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;}
+    :root{
+      --bg:#171410;--card-bg:#241f17;--card-hover:#2c2619;
+      --border:#332c1f;--border-soft:#2a2318;
+      --gold:#c4a265;--gold-light:#d9b87a;--gold-dim:#8a6e42;
+      --cream:#ede8dc;--cream-dim:#b5a98f;--cream-muted:#7a6f5a;
+      --olive:#3d4528;--green:#7a9e5a;--red:#c46055;--blue:#6b8fbf;
+    }
+    html,body{min-height:100%;width:100%;font-family:'Inter',sans-serif;background:var(--bg);color:var(--cream);}
+
+    .wrap{max-width:1300px;margin:0 auto;padding:44px 44px 80px;}
+
+    /* BACK */
+    .back-btn{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:500;color:var(--cream-muted);text-decoration:none;transition:color .15s;margin-bottom:28px;}
+    .back-btn:hover{color:var(--gold-light);}
+    .back-btn:hover svg{transform:translateX(-3px);}
+    .back-btn svg{transition:transform .2s;}
+
+    /* HEADER */
+    .page-title{font-family:'Playfair Display',serif;font-size:34px;font-weight:700;color:var(--cream);margin-bottom:6px;}
+    .page-sub{font-size:13px;font-weight:300;color:var(--cream-muted);margin-bottom:32px;}
+
+    /* KPI PILLS */
+    .kpi-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:36px;}
+    .kpi{
+      background:var(--card-bg);border:1px solid var(--border);border-radius:10px;
+      padding:16px 22px;flex:1;min-width:160px;
+    }
+    .kpi-label{font-size:10px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--cream-muted);margin-bottom:6px;}
+    .kpi-value{font-family:'Playfair Display',serif;font-size:26px;font-weight:700;color:var(--gold-light);line-height:1;}
+    .kpi-sub{font-size:11px;color:var(--cream-muted);margin-top:4px;}
+
+    /* SECTION DIVIDER */
+    .divider{display:flex;align-items:center;gap:14px;margin:36px 0 20px;}
+    .divider span{font-family:'Playfair Display',serif;font-size:12px;font-weight:600;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap;}
+    .divider::after{content:'';flex:1;height:1px;background:var(--border);}
+
+    /* CHART CARD */
+    .chart-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:28px;}
+
+    /* TOP PRODUCTS */
+    .top-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    @media(max-width:900px){.top-grid{grid-template-columns:1fr;}}
+
+    .top-table-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+    .top-table-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+    .top-table-header h3{font-family:'Playfair Display',serif;font-size:16px;font-weight:600;color:var(--cream);}
+    .top-table-header span{font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--cream-muted);}
+
+    .top-row{
+      display:flex;align-items:center;gap:12px;padding:11px 20px;
+      border-bottom:1px solid var(--border-soft);transition:background .12s;
+    }
+    .top-row:last-child{border-bottom:none;}
+    .top-row:hover{background:rgba(196,162,101,0.04);}
+
+    .top-rank{font-size:11px;font-weight:700;color:var(--cream-muted);width:20px;text-align:center;flex-shrink:0;}
+    .top-rank.gold{color:var(--gold);}
+    .top-name{flex:1;font-size:13px;font-weight:400;color:var(--cream);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .top-qty{font-size:12px;font-weight:600;color:var(--cream-dim);flex-shrink:0;}
+    .top-bar-wrap{width:80px;flex-shrink:0;}
+    .top-bar{height:4px;border-radius:2px;background:rgba(196,162,101,0.15);}
+    .top-bar-fill{height:100%;border-radius:2px;background:linear-gradient(to right,var(--gold-dim),var(--gold-light));}
+
+    /* CAT CHART */
+    .cat-chart-container{position:relative;height:480px;}
+
+    /* DONUT LAYOUT */
+    .donut-layout{display:grid;grid-template-columns:300px 1fr;gap:32px;align-items:start;}
+    @media(max-width:860px){.donut-layout{grid-template-columns:1fr;}}
+
+    .donut-wrap{position:relative;height:280px;display:flex;align-items:center;justify-content:center;}
+    .donut-center{
+      position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+      text-align:center;pointer-events:none;
+    }
+    .donut-center-val{font-family:'Playfair Display',serif;font-size:18px;font-weight:700;color:var(--gold-light);}
+    .donut-center-lbl{font-size:10px;color:var(--cream-muted);text-transform:uppercase;letter-spacing:1px;}
+
+    .cat-legend{display:flex;flex-direction:column;gap:7px;max-height:360px;overflow-y:auto;padding-right:4px;}
+    .cat-leg-row{display:flex;align-items:center;gap:9px;}
+    .cat-leg-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+    .cat-leg-name{flex:1;font-size:12px;color:var(--cream);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .cat-leg-pct{font-size:11px;font-weight:600;color:var(--gold-dim);width:36px;text-align:right;flex-shrink:0;}
+    .cat-leg-rev{font-size:11px;color:var(--cream-muted);width:70px;text-align:right;flex-shrink:0;}
+
+    ::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:transparent;}
+    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+  </style>
+</head>
+<body>
+<div id="sync-bar" style="
+  position:fixed;top:0;left:0;right:0;z-index:999;
+  background:#1f1b14;border-bottom:1px solid #332c1f;
+  padding:8px 20px;display:flex;align-items:center;gap:10px;
+  font-size:11px;font-weight:500;color:#7a6f5a;
+  transform:translateY(-100%);transition:transform .3s ease;
+">
+  <span id="sync-icon">⏱</span>
+  <span id="sync-msg">Verificando datos...</span>
+  <button id="sync-btn" onclick="triggerSync()" style="
+    margin-left:auto;font-size:10px;font-weight:600;letter-spacing:0.8px;
+    text-transform:uppercase;padding:4px 12px;border-radius:4px;border:none;
+    background:rgba(196,162,101,0.15);color:#c4a265;cursor:pointer;
+    border:1px solid rgba(196,162,101,0.3);transition:all .15s;
+  ">🔄 Actualizar</button>
+  <button onclick="document.getElementById('sync-bar').style.transform='translateY(-100%)'" style="
+    background:none;border:none;color:#7a6f5a;cursor:pointer;font-size:14px;padding:0 4px;
+  ">×</button>
+</div>
+<div class="wrap">
+
+  <a href="/estadisticas" class="back-btn">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Estadísticas
+  </a>
+
+  <div class="page-title">🍽️ Productos</div>
+  <div class="page-sub">Ranking de productos, ventas por categoría y distribución del menú · Datos de Fudo API</div>
+
+  <!-- KPIs -->
+  <div class="kpi-row" id="kpi-row">
+    <div class="kpi">
+      <div class="kpi-label">Total ítems vendidos</div>
+      <div class="kpi-value" id="kpi-items">—</div>
+      <div class="kpi-sub">unidades despachadas</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Categorías activas</div>
+      <div class="kpi-value" id="kpi-cats">—</div>
+      <div class="kpi-sub">en el menú</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Producto top</div>
+      <div class="kpi-value" id="kpi-top-product">—</div>
+      <div class="kpi-sub" id="kpi-top-product-sub">por ingresos</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Categoría líder</div>
+      <div class="kpi-value" id="kpi-top-cat">—</div>
+      <div class="kpi-sub" id="kpi-top-cat-sub">por ingresos</div>
+    </div>
+  </div>
+
+  <!-- RANKING PRODUCTOS -->
+  <div class="divider"><span>🥇 Ranking de productos</span></div>
+  <div class="top-grid">
+    <div class="top-table-card">
+      <div class="top-table-header"><h3>Por cantidad vendida</h3><span>unidades</span></div>
+      <div id="top-qty-list"></div>
+    </div>
+    <div class="top-table-card">
+      <div class="top-table-header"><h3>Por ingresos generados</h3><span>revenue</span></div>
+      <div id="top-revenue-list"></div>
+    </div>
+  </div>
+
+  <!-- VENTAS POR CATEGORÍA -->
+  <div class="divider"><span>🗂️ Ventas por categoría</span></div>
+  <div class="chart-card">
+    <div class="cat-chart-container">
+      <canvas id="catChart"></canvas>
+    </div>
+  </div>
+
+  <!-- DISTRIBUCIÓN DONUT -->
+  <div class="divider"><span>🍩 Distribución por categoría (ingresos)</span></div>
+  <div class="chart-card">
+    <div class="donut-layout">
+      <div>
+        <div class="donut-wrap">
+          <canvas id="donutChart"></canvas>
+          <div class="donut-center">
+            <div class="donut-center-val" id="donut-total">—</div>
+            <div class="donut-center-lbl">total ingresos</div>
+          </div>
+        </div>
+      </div>
+      <div class="cat-legend" id="cat-legend"></div>
+    </div>
+  </div>
+
+</div>
+
+<script src="/estadisticas/ventas_data.js"></script>
+<script src="/estadisticas/ventas_data_v2.js"></script>
+<script>
+const D  = VENTAS_DATA;
+const D2 = VENTAS_DATA_V2;
+
+// ── UTILS ──
+function fmtMoney(v) {
+  if(v >= 1e9) return '$' + (v/1e9).toFixed(2) + 'B';
+  if(v >= 1e6) return '$' + (v/1e6).toFixed(1) + 'M';
+  if(v >= 1e3) return '$' + Math.round(v/1e3) + 'K';
+  return '$' + Math.round(v).toLocaleString('es-AR');
+}
+function fmtMoneyFull(v){return '$'+Math.round(v).toLocaleString('es-AR');}
+
+// ── CHART.JS DEFAULTS ──
+Chart.defaults.color = '#7a6f5a';
+Chart.defaults.borderColor = '#2a2318';
+Chart.defaults.font.family = "'Inter', sans-serif";
+
+// ── KPIs ──
+function fillKPIs() {
+  const totalItems = D2.salesByCategory.reduce((s,c)=>s+c.qty, 0);
+  document.getElementById('kpi-items').textContent = totalItems.toLocaleString('es-AR');
+  document.getElementById('kpi-cats').textContent = D2.salesByCategory.length;
+
+  const topByRev = [...D.topProducts].sort((a,b)=>b.revenue-a.revenue)[0];
+  document.getElementById('kpi-top-product').textContent = topByRev ? topByRev.name.split(' ').slice(0,3).join(' ') : '—';
+  document.getElementById('kpi-top-product-sub').textContent = topByRev ? fmtMoney(topByRev.revenue) + ' en ingresos' : 'por ingresos';
+
+  const topCat = [...D2.salesByCategory].sort((a,b)=>b.revenue-a.revenue)[0];
+  document.getElementById('kpi-top-cat').textContent = topCat ? topCat.name : '—';
+  document.getElementById('kpi-top-cat-sub').textContent = topCat ? fmtMoney(topCat.revenue) + ' en ingresos' : 'por ingresos';
+}
+
+// ── TOP PRODUCTS ──
+function buildTopLists() {
+  const byQty = [...D.topProducts].sort((a,b)=>b.qty-a.qty).slice(0,15);
+  const byRev = [...D.topProducts].sort((a,b)=>b.revenue-a.revenue).slice(0,15);
+  const maxQty = byQty[0]?.qty || 1;
+  const maxRev = byRev[0]?.revenue || 1;
+
+  function row(item, rank, value, max, fmt) {
+    const pct = Math.round((value/max)*100);
+    const rankClass = rank<=3 ? 'gold' : '';
+    const medal = rank===1?'🥇':rank===2?'🥈':rank===3?'🥉':rank;
+    return `<div class="top-row">
+      <div class="top-rank ${rankClass}">${medal}</div>
+      <div class="top-name" title="${item.name}">${item.name}</div>
+      <div class="top-qty">${fmt(value)}</div>
+      <div class="top-bar-wrap"><div class="top-bar"><div class="top-bar-fill" style="width:${pct}%"></div></div></div>
+    </div>`;
+  }
+
+  document.getElementById('top-qty-list').innerHTML =
+    byQty.map((p,i)=>row(p,i+1,p.qty,maxQty,v=>v.toLocaleString('es-AR')+' u')).join('');
+  document.getElementById('top-revenue-list').innerHTML =
+    byRev.map((p,i)=>row(p,i+1,p.revenue,maxRev,fmtMoney)).join('');
+}
+
+// ── CAT CHART (horizontal bars) ──
+function buildCatChart() {
+  const cats = [...D2.salesByCategory]
+    .sort((a,b)=>b.revenue-a.revenue)
+    .slice(0,18);
+
+  const ctx = document.getElementById('catChart').getContext('2d');
+  new Chart(ctx, {
+    type:'bar',
+    data:{
+      labels: cats.map(c=>c.name),
+      datasets:[
+        {
+          label:'Ingresos',
+          data: cats.map(c=>c.revenue),
+          backgroundColor: cats.map((_,i)=>{
+            const alpha = 0.9 - (i/cats.length)*0.45;
+            return `rgba(196,162,101,${alpha.toFixed(2)})`;
+          }),
+          borderColor:'rgba(196,162,101,0.6)',
+          borderWidth:1,
+          borderRadius:4,
+          borderSkipped:false,
+          yAxisID:'y',
+        },
+        {
+          label:'Cantidad',
+          data: cats.map(c=>c.qty),
+          backgroundColor:'rgba(107,143,191,0.35)',
+          borderColor:'rgba(107,143,191,0.6)',
+          borderWidth:1,
+          borderRadius:4,
+          borderSkipped:false,
+          yAxisID:'y1',
+          type:'bar',
+        }
+      ]
+    },
+    options:{
+      indexAxis:'y',
+      responsive:true, maintainAspectRatio:false,
+      interaction:{ mode:'index', intersect:false },
+      plugins:{
+        legend:{
+          display:true,
+          position:'top',
+          labels:{ color:'#b5a98f', font:{size:11}, boxWidth:12, padding:16 }
+        },
+        tooltip:{
+          backgroundColor:'#1f1b14',borderColor:'#332c1f',borderWidth:1,
+          titleColor:'#d9b87a',bodyColor:'#b5a98f',padding:10,
+          callbacks:{
+            label: item => item.datasetIndex===0
+              ? ' Ingresos: ' + fmtMoney(item.raw)
+              : ' Cantidad: ' + item.raw.toLocaleString('es-AR') + ' u'
+          }
+        }
+      },
+      scales:{
+        y:{
+          grid:{ color:'rgba(51,44,31,0.4)' },
+          ticks:{ font:{size:11} }
+        },
+        x:{
+          position:'bottom',
+          grid:{ color:'rgba(51,44,31,0.4)' },
+          ticks:{ font:{size:10}, callback:v=>fmtMoney(v) }
+        },
+        y1:{
+          position:'right',
+          grid:{ drawOnChartArea:false },
+          ticks:{ font:{size:10}, color:'rgba(107,143,191,0.8)', callback:v=>v.toLocaleString('es-AR')+' u' }
+        }
+      }
+    }
+  });
+}
+
+// ── DONUT + LEYENDA ──
+const CAT_COLORS = [
+  '#c4a265','#d9b87a','#8a6e42','#6b8fbf','#7a9e5a',
+  '#c46055','#9b7ec4','#5a8a8a','#c48a55','#7a5a8a',
+  '#55a88a','#a8955a','#7a6f5a',
+];
+
+function buildDonut() {
+  const sorted = [...D2.salesByCategory].sort((a,b)=>b.revenue-a.revenue);
+  const top12  = sorted.slice(0,12);
+  const rest   = sorted.slice(12);
+  const restRev = rest.reduce((s,c)=>s+c.revenue,0);
+  const total  = sorted.reduce((s,c)=>s+c.revenue,0);
+
+  const labels = [...top12.map(c=>c.name), rest.length ? 'Otras' : null].filter(Boolean);
+  const values = [...top12.map(c=>c.revenue), rest.length ? restRev : null].filter(v=>v!=null);
+  const colors = CAT_COLORS.slice(0, labels.length);
+
+  document.getElementById('donut-total').textContent = fmtMoney(total);
+
+  const ctx = document.getElementById('donutChart').getContext('2d');
+  new Chart(ctx, {
+    type:'doughnut',
+    data:{
+      labels,
+      datasets:[{
+        data: values,
+        backgroundColor: colors,
+        borderColor: '#241f17',
+        borderWidth: 3,
+        hoverOffset: 8,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      cutout:'68%',
+      plugins:{
+        legend:{ display:false },
+        tooltip:{
+          backgroundColor:'#1f1b14',borderColor:'#332c1f',borderWidth:1,
+          titleColor:'#d9b87a',bodyColor:'#b5a98f',padding:10,
+          callbacks:{
+            label: item => ' ' + fmtMoney(item.raw) + ' · ' + (item.raw/total*100).toFixed(1)+'%'
+          }
+        }
+      }
+    }
+  });
+
+  // Leyenda lateral
+  const legendEl = document.getElementById('cat-legend');
+  const legendItems = [...top12.map(c=>({name:c.name,revenue:c.revenue}))];
+  if(rest.length) legendItems.push({name:'Otras', revenue: restRev});
+
+  legendEl.innerHTML = legendItems.map((c,i) => {
+    const pct = (c.revenue/total*100).toFixed(1);
+    const color = colors[i] || '#7a6f5a';
+    return `<div class="cat-leg-row">
+      <div class="cat-leg-dot" style="background:${color}"></div>
+      <div class="cat-leg-name" title="${c.name}">${c.name}</div>
+      <div class="cat-leg-pct">${pct}%</div>
+      <div class="cat-leg-rev">${fmtMoney(c.revenue)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── INIT ──
+fillKPIs();
+buildTopLists();
+buildCatChart();
+buildDonut();
+</script>
+<script>
+// ── SYNC CON SUPABASE ──
+async function checkAndRefresh() {
+  try {
+    const res = await fetch('/api/status');
+    if (!res.ok) return;
+    const { lastSync } = await res.json();
+    if (!lastSync) return;
+
+    const bar = document.getElementById('sync-bar');
+    const msg = document.getElementById('sync-msg');
+    const icon = document.getElementById('sync-icon');
+
+    const ago = getTimeAgo(new Date(lastSync));
+    icon.textContent = '✓';
+    msg.textContent = `Datos actualizados ${ago}`;
+    bar.style.transform = 'translateY(0)';
+
+    // Auto-ocultar después de 5s
+    setTimeout(() => { bar.style.transform = 'translateY(-100%)'; }, 5000);
+
+  } catch(e) { /* silencioso si falla */ }
+}
+
+async function triggerSync() {
+  const bar = document.getElementById('sync-bar');
+  const msg = document.getElementById('sync-msg');
+  const icon = document.getElementById('sync-icon');
+  const btn = document.getElementById('sync-btn');
+
+  bar.style.transform = 'translateY(0)';
+  icon.textContent = '⏳';
+  msg.textContent = 'Sincronizando con FUDO...';
+  btn.disabled = true;
+
+  // TODO: En producción este fetch fallará con 401 porque no envía el CRON_SECRET.
+  // Implementar autenticación de usuario o un token público de solo-sync con rate limiting.
+  try {
+    const res = await fetch('/api/sync', { method: 'POST' });
+    if (res.ok) {
+      icon.textContent = '✅';
+      msg.textContent = 'Datos actualizados. Recargando...';
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      icon.textContent = '⚠️';
+      msg.textContent = 'Error al sincronizar';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    icon.textContent = '⚠️';
+    msg.textContent = 'Error de conexión';
+    btn.disabled = false;
+  }
+}
+
+function getTimeAgo(date) {
+  const diff = Math.floor((Date.now() - date) / 1000);
+  if (diff < 60) return 'hace un momento';
+  if (diff < 3600) return `hace ${Math.floor(diff/60)} min`;
+  if (diff < 86400) return `hace ${Math.floor(diff/3600)} h`;
+  return `hace ${Math.floor(diff/86400)} días`;
+}
+
+// Chequear al cargar la página (con delay para no bloquear render)
+setTimeout(checkAndRefresh, 2000);
+</script>
+</body>
+</html>
