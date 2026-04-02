@@ -127,6 +127,7 @@
 
   <div class="page-title">🍽️ Productos</div>
   <div class="page-sub">Ranking de productos, ventas por categoría y distribución del menú · Datos de Fudo API</div>
+  <div id="last-sync-label" style="font-size:11px;color:var(--cream-muted);margin-top:-24px;margin-bottom:32px;opacity:0;transition:opacity .3s;"></div>
 
   <!-- KPIs -->
   <div class="kpi-row" id="kpi-row">
@@ -419,6 +420,15 @@ async function checkAndRefresh() {
     icon.textContent = '✓';
     msg.textContent = `Datos actualizados ${ago}`;
     bar.style.transform = 'translateY(0)';
+
+    const lbl = document.getElementById('last-sync-label');
+    if (lbl) {
+      const d = new Date(lastSync);
+      const fmt = d.toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires',
+        day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false });
+      lbl.textContent = `Última sincronización: ${fmt}`;
+      lbl.style.opacity = '1';
+    }
 
     // Auto-ocultar después de 5s
     setTimeout(() => { bar.style.transform = 'translateY(-100%)'; }, 5000);
