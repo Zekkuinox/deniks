@@ -710,11 +710,11 @@ function dpSelectYear(id, y) {
   dpRender(id);
 }
 
-// Cerrar al click afuera
+// Cerrar al click afuera — si el target ya no está en el DOM (re-render) no cerrar
 document.addEventListener('click', (e) => {
   ['from','to'].forEach(id => {
     const wrap = document.getElementById(`dp-${id}-wrap`);
-    if (wrap && !wrap.contains(e.target)) dpClose(id);
+    if (wrap && document.body.contains(e.target) && !wrap.contains(e.target)) dpClose(id);
   });
 });
 
